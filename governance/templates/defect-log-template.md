@@ -1,0 +1,282 @@
+---
+description: "Defect log template for bug tracking and resolution"
+---
+
+# Defect Log: [PROJECT NAME]
+
+**Last Updated**: [DATE] | **Sprint/Iteration**: [NUMBER]  
+**Total Defects**: [#] | **Open**: [#] | **In Progress**: [#] | **Resolved**: [#] | **Closed**: [#]
+
+## Defect Summary
+
+| Severity | Open | In Progress | Resolved | Closed | Total |
+|----------|------|-------------|----------|--------|-------|
+| 🔴 Critical | [#] | [#] | [#] | [#] | [#] |
+| 🟠 High | [#] | [#] | [#] | [#] | [#] |
+| 🟡 Medium | [#] | [#] | [#] | [#] | [#] |
+| 🟢 Low | [#] | [#] | [#] | [#] | [#] |
+| **Total** | **[#]** | **[#]** | **[#]** | **[#]** | **[#]** |
+
+## Open Defects
+
+### Critical Defects 🔴
+
+| ID | Title | Component | Reported By | Assigned To | Status | Reported Date | Target Fix |
+|----|-------|-----------|-------------|-------------|--------|---------------|------------|
+| D-### | [Brief description] | [Component] | [Name] | [Name] | [Status] | [Date] | [Date] |
+
+### High Priority Defects 🟠
+
+| ID | Title | Component | Reported By | Assigned To | Status | Reported Date | Target Fix |
+|----|-------|-----------|-------------|-------------|--------|---------------|------------|
+| D-### | [Brief description] | [Component] | [Name] | [Name] | [Status] | [Date] | [Date] |
+
+### Medium Priority Defects 🟡
+
+| ID | Title | Component | Reported By | Assigned To | Status | Reported Date | Target Fix |
+|----|-------|-----------|-------------|-------------|--------|---------------|------------|
+| D-### | [Brief description] | [Component] | [Name] | [Name] | [Status] | [Date] | [Date] |
+
+### Low Priority Defects 🟢
+
+| ID | Title | Component | Reported By | Assigned To | Status | Reported Date | Target Fix |
+|----|-------|-----------|-------------|-------------|--------|---------------|------------|
+| D-### | [Brief description] | [Component] | [Name] | [Name] | [Status] | [Date] | [Date] |
+
+## Defect Details
+
+### D-### [Defect Title]
+
+**Status**: [Open / In Progress / Resolved / Closed / Deferred]  
+**Severity**: [Critical / High / Medium / Low]  
+**Priority**: [P0 / P1 / P2 / P3]  
+**Component**: [Component/Module name]  
+**Reported By**: [Name]  
+**Reported Date**: [Date]  
+**Assigned To**: [Name]  
+**Target Fix Date**: [Date]
+
+**Environment**:
+- **OS**: [Operating System]
+- **Version**: [Software version]
+- **Configuration**: [Relevant config details]
+
+**Description**:
+[Detailed description of the defect]
+
+**Steps to Reproduce**:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Expected Behavior**:
+[What should happen]
+
+**Actual Behavior**:
+[What actually happens]
+
+**Impact**:
+[Description of impact on users/system]
+
+**Workaround** (if any):
+[Temporary workaround]
+
+**Root Cause**:
+[Analysis of root cause - filled after investigation]
+
+**Resolution**:
+[Description of fix - filled when resolved]
+
+**Related Defects**:
+- [D-###] - [Relationship]
+
+**Attachments**:
+- [Screenshot/log file links]
+
+**Activity Log**:
+- [Date] - [Name]: [Action/Comment]
+- [Date] - [Name]: [Action/Comment]
+
+**Verification**:
+- [ ] Fix implemented
+- [ ] Unit tests added
+- [ ] Integration tests passed
+- [ ] Regression tests passed
+- [ ] Code reviewed
+- [ ] Deployed to test environment
+- [ ] Verified by reporter
+
+---
+
+### D-### [Defect Title]
+
+**Status**: [Open / In Progress / Resolved / Closed / Deferred]  
+**Severity**: [Critical / High / Medium / Low]  
+**Priority**: [P0 / P1 / P2 / P3]  
+**Component**: [Component/Module name]  
+**Reported By**: [Name]  
+**Reported Date**: [Date]  
+**Assigned To**: [Name]  
+**Target Fix Date**: [Date]
+
+**Environment**:
+- **OS**: [Operating System]
+- **Version**: [Software version]
+- **Configuration**: [Relevant config details]
+
+**Description**:
+[Detailed description of the defect]
+
+**Steps to Reproduce**:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Expected Behavior**:
+[What should happen]
+
+**Actual Behavior**:
+[What actually happens]
+
+**Impact**:
+[Description of impact on users/system]
+
+**Workaround** (if any):
+[Temporary workaround]
+
+**Root Cause**:
+[Analysis of root cause - filled after investigation]
+
+**Resolution**:
+[Description of fix - filled when resolved]
+
+**Related Defects**:
+- [D-###] - [Relationship]
+
+**Attachments**:
+- [Screenshot/log file links]
+
+**Activity Log**:
+- [Date] - [Name]: [Action/Comment]
+- [Date] - [Name]: [Action/Comment]
+
+**Verification**:
+- [ ] Fix implemented
+- [ ] Unit tests added
+- [ ] Integration tests passed
+- [ ] Regression tests passed
+- [ ] Code reviewed
+- [ ] Deployed to test environment
+- [ ] Verified by reporter
+
+---
+
+## Recently Resolved
+
+| ID | Title | Severity | Resolved By | Resolved Date | Resolution |
+|----|-------|----------|-------------|---------------|------------|
+| D-### | [Brief description] | [Severity] | [Name] | [Date] | [Brief resolution] |
+| D-### | [Brief description] | [Severity] | [Name] | [Date] | [Brief resolution] |
+
+## Recently Closed
+
+| ID | Title | Severity | Closed By | Closed Date | Verified By |
+|----|-------|----------|-----------|-------------|-------------|
+| D-### | [Brief description] | [Severity] | [Name] | [Date] | [Name] |
+| D-### | [Brief description] | [Severity] | [Name] | [Date] | [Name] |
+
+## Deferred Defects
+
+| ID | Title | Severity | Deferred Date | Reason | Target Release |
+|----|-------|----------|---------------|--------|----------------|
+| D-### | [Brief description] | [Severity] | [Date] | [Reason for deferral] | [Release] |
+
+## Defect Metrics
+
+### Age of Open Defects
+
+| Age Range | Count |
+|-----------|-------|
+| 0-7 days | [#] |
+| 8-14 days | [#] |
+| 15-30 days | [#] |
+| 31+ days | [#] |
+
+### Resolution Time (Closed Defects)
+
+| Severity | Avg Resolution Time | Min | Max |
+|----------|---------------------|-----|-----|
+| Critical | [# days] | [# days] | [# days] |
+| High | [# days] | [# days] | [# days] |
+| Medium | [# days] | [# days] | [# days] |
+| Low | [# days] | [# days] | [# days] |
+
+### Defects by Component
+
+| Component | Open | In Progress | Resolved | Closed | Total |
+|-----------|------|-------------|----------|--------|-------|
+| [Component 1] | [#] | [#] | [#] | [#] | [#] |
+| [Component 2] | [#] | [#] | [#] | [#] | [#] |
+
+## Defect Workflow
+
+```
+Open → In Progress → Resolved → Closed
+  ↓
+Deferred (if not fixing now)
+```
+
+**Status Definitions**:
+- **Open**: Defect reported, not yet assigned or work not started
+- **In Progress**: Actively being investigated or fixed
+- **Resolved**: Fix implemented and ready for verification
+- **Closed**: Fix verified and accepted
+- **Deferred**: Postponed to future release
+
+**Severity Definitions**:
+- **Critical**: System crash, data loss, security breach, complete feature failure
+- **High**: Major functionality broken, significant performance degradation, no workaround
+- **Medium**: Feature partially working, workaround available, minor performance impact
+- **Low**: Cosmetic issues, minor inconvenience, enhancement request
+
+**Priority Definitions**:
+- **P0**: Fix immediately, blocks release
+- **P1**: Fix in current sprint/iteration
+- **P2**: Fix in next sprint/iteration
+- **P3**: Fix when time permits
+
+---
+
+## Maintenance Guidelines
+
+### Reporting New Defects
+1. Assign unique ID (D-###)
+2. Set severity based on impact
+3. Provide clear reproduction steps
+4. Include environment details
+5. Attach relevant screenshots/logs
+6. Update defect summary table
+
+### Updating Defects
+1. Log all activities with date and name
+2. Update status as work progresses
+3. Document root cause when identified
+4. Describe resolution when fixed
+5. Update target fix date if changed
+
+### Resolving Defects
+1. Implement fix
+2. Add/update tests
+3. Update status to Resolved
+4. Notify reporter for verification
+5. Move to Recently Resolved section
+
+### Closing Defects
+1. Verify fix in appropriate environment
+2. Confirm with reporter
+3. Update status to Closed
+4. Move to Recently Closed section
+5. Update defect summary table
+
+---
+*Defect log maintained per project governance standards*
