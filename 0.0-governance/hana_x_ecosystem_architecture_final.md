@@ -858,7 +858,7 @@ This document serves as the **architectural reference point** for all agents, de
 **Document Status**: FINAL  
 **Version**: 1.1  
 **Date**: 2025-11-02  
-**Location**: `/<project-name>/governance/hana_x_ecosystem_architecture_final.md`  
+**Location**: `/<project-name>/0.0-governance/hana_x_ecosystem_architecture_final.md`  
 **Cross-References**:
 - Hana-X Project Scope (Final)
 - Hana-X Platform Nodes (Final)

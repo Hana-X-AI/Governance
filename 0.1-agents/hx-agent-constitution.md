@@ -189,11 +189,11 @@ ALL agents MUST maintain comprehensive, real-time documentation.
 - Use established templates and formats
 
 **Documentation Locations:**
-- Governance: `/<project-name>/governance/`
-- Credentials: `/<project-name>/governance/credentials/hx-secretes.md`
-- Integrations: `/<project-name>/governance/integrations/`
-- Methodology: `/<project-name>/governance/methodology/hx-methodology.md`
-- Templates: `/<project-name>/governance/templates/`
+- Governance: `/<project-name>/0.0-governance/`
+- Credentials: `/<project-name>/0.0-governance/credentials/hx-secretes.md`
+- Integrations: `/<project-name>/0.0-governance/integrations/`
+- Methodology: `/<project-name>/0.0-governance/methodology/hx-methodology.md`
+- Templates: `/<project-name>/0.0-governance/templates/`
 - Server-specific: `/<project-name>/deployments/servers/hx-{service}-server/`
 
 **Forbidden:**
@@ -651,7 +651,7 @@ If two agents have conflicting approaches or recommendations:
 
 **Governance Directory is Authoritative:**
 
-The governance directory (`/<project-name>/governance/`) is the SINGLE SOURCE OF TRUTH.
+The governance directory (`/<project-name>/0.0-governance/`) is the SINGLE SOURCE OF TRUTH.
 
 **Hierarchy of Authority:**
 1. This Constitution (supreme)
@@ -836,7 +836,7 @@ Amendments require:
 
 **Critical Documents:**
 ```
-/<project-name>/governance/
+/<project-name>/0.0-governance/
 ├── constitution.md                    # THIS DOCUMENT
 ├── agent-principles.md                # Agent operating principles
 ├── methodology/

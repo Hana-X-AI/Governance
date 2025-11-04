@@ -48,7 +48,7 @@ Tier 3: Execution Artifacts (created during deployment)
 
 **Reference Locations:**
 ```
-/<project-name>/governance/
+/<project-name>/0.0-governance/
 â”œâ”€â”€ hx-agent-constitution.md
 â”œâ”€â”€ hana_x_ecosystem_architecture_final.md
 â”œâ”€â”€ hana_x_platform_nodes_final.md
@@ -972,7 +972,7 @@ Quality Deployment =
 
 ---
 
-**Location**: `/<project-name>/governance/hx-deployment-methodology_final.md`  
+**Location**: `/<project-name>/0.0-governance/hx-deployment-methodology_final.md`  
 
 **Cross-References**:
 - Hana-X Agent Constitution

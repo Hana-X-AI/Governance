@@ -54,7 +54,7 @@ Operating Systems, Domain Controller (Samba/LDAP), DNS, Internal CA, SSL, Docker
 GitHub (Repositories, Apps, Pages, Workflows), **hx-metric-server (Observability)**, **hx-cc-server (Claude Code Integrator)**, Coderabbit (Code Review), Librarian (File Structure & Organization), QA/Test Agent (Standards, System Test, Integration, UAT), Release & Deployment Agent (CI/CD Automation and Demo Server Releases)  
 
 **7. Business & Technical Leadership**  
--- **Project Management Agent** – Oversees planning, task creation, tracking, and reporting. Coordinates inter-agent work and prioritizes activities using templates from `/<project-name>/governance/templates`..  
+-- **Project Management Agent** – Oversees planning, task creation, tracking, and reporting. Coordinates inter-agent work and prioritizes activities using templates from `/<project-name>/0.0-governance/templates`..  
 - **Business Analyst Agent** â€“ Defines business use cases, requirements, and user interaction flows (Mermaid). Aligns delivery with business intent and coordinates across agents.  
 - **Architect Agent** â€“ Defines agentic patterns (stored in `/srv/knowledge/vault/agentic-design-patterns-docs-main`), maintains architecture diagrams, technical designs, and data-flow documentation. Engages specialized agents as required.  
 - **Senior Application Developer Agent** â€“ Leads development execution, enforces OOP standards, conducts unit testing, manages defect resolution, and can spawn multiple instances for parallel workstreams.  
@@ -107,14 +107,14 @@ The Hana-X AI Ecosystem project maintains two primary file system hierarchies on
 |-------------|----------|-----------------|
 | Project Root | `/<project-name>` | Primary project directory |
 | Governance Docs | `/<project-name>/governance` | Project governance documents (scope, architecture, deployment) |
-| Templates | `/<project-name>/governance/templates` | Project management templates, workflows |
-| Patterns (Selected) | `/<project-name>/governance/patterns` | Selected agentic patterns in active use |
+| Templates | `/<project-name>/0.0-governance/templates` | Project management templates, workflows |
+| Patterns (Selected) | `/<project-name>/0.0-governance/patterns` | Selected agentic patterns in active use |
 | Knowledge Vault | `/srv/knowledge/vault` | Large knowledge repository, agent training data, configuration |
 | Pattern Library | `/srv/knowledge/vault/agentic-design-patterns-docs-main` | Complete agentic design pattern library |
 
 **Key Directories:**
 
-**Governance Directory** (`/<project-name>/governance/`):
+**Governance Directory** (`/<project-name>/0.0-governance/`):
 - Contains project governance documents including scope, architecture, deployment methodologies, and standards
 - **templates/**: Stores reusable templates for project management, reporting, and agent workflows
 - **patterns/**: Contains selected subset of agentic patterns currently in use (sourced from knowledge vault)
@@ -130,5 +130,5 @@ All agents reference these paths for coordination, configuration, and knowledge 
 
 **Document Version**: 1.3  
 **Last Updated**: 2025-11-02  
-**Location**: `/<project-name>/governance/hana_x_project_scope_final.md`
+**Location**: `/<project-name>/0.0-governance/hana_x_project_scope_final.md`
 
