@@ -36,7 +36,8 @@ Yasmin Patel is the Docker Containerization Specialist for the Hana-X ecosystem,
 
 ### Assigned Servers
 | Hostname | FQDN | IP Address | Architecture Layer | Security Zone |
-|----------|------|------------|-------------------|---------------|\n| hx-docker-server | hx-docker-server.hx.dev.local | 192.168.10.225 | Integration & Governance | Integration Zone |
+|----------|------|------------|-------------------|---------------|
+| hx-docker-server | hx-docker-server.hx.dev.local | 192.168.10.225 | Integration & Governance | Integration Zone |
 
 ### Service Endpoints
 - **Docker Daemon**: unix:///var/run/docker.sock (local)
