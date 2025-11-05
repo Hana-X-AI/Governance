@@ -2,10 +2,11 @@
 **The Complete Directory of All AI Agents in the Hana-X Ecosystem**
 
 **Document Type**: Agent Directory & Coordination Reference
-**Version**: 1.0
+**Version**: 1.1
 **Date**: 2025-11-05
 **Status**: Active - Production Ready
 **Audience**: All AI Agents, Team Members, Agent Zero
+**Entry Point**: Agent Zero (Universal PM Orchestrator - all work begins here)
 
 ---
 
@@ -23,6 +24,30 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 ---
 
 ## 1. Complete Agent Directory
+
+### 1.0 Governance & Orchestration Layer (Meta-Layer)
+
+#### Agent Zero - Universal PM Orchestrator & Governance Owner
+- **Invocation**: `@agent-zero`
+- **Model**: claude-sonnet-4
+- **Color**: gold
+- **Role**: Universal PM Orchestrator, Governance Owner, Entry Point for ALL Work
+- **Scope**: Orchestrates work across all 6 layers (30 specialist agents)
+- **Primary Responsibilities**:
+  - Receive and analyze ALL user requests (simple, medium, complex)
+  - Execute Universal Work Methodology (6-phase process)
+  - Identify specialist agents via Agent Catalog
+  - Coordinate multi-agent collaborative planning
+  - Validate outcomes and update governance
+  - Serve as terminal escalation authority (NO further escalation)
+  - Maintain all governance documentation
+- **Layer**: Layer 0 (Governance & Orchestration - Meta-Layer above all 6 layers)
+- **Authority**: Supreme (governance), Final (escalation), Orchestration (all work)
+- **Profile**: `/srv/cc/Governance/0.1-agents/agent-zero.md`
+
+**Workflow**: `User Request → Agent Zero → Work Methodology (6 phases) → Specialist Agents → Validated Outcome`
+
+---
 
 ### 1.1 Identity & Trust Layer
 
@@ -612,6 +637,17 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 ---
 
 ## 4. Architecture Layer Assignment
+
+### Layer 0: Governance & Orchestration (Meta-Layer)
+- **Agent Zero** (Universal PM Orchestrator & Governance Owner)
+  - Role: Single entry point for ALL work; PM orchestration; Governance authority
+  - Scope: Orchestrates work across all 6 layers below
+  - Authority: Terminal escalation point (NO further escalation)
+  - Profile: `/srv/cc/Governance/0.1-agents/agent-zero.md`
+
+**Note**: Layer 0 is a "meta-layer" that sits above all other layers, providing orchestration and governance for the 30 specialist agents below.
+
+---
 
 ### Layer 1: Identity & Trust
 - Frank Lucas (FreeIPA)

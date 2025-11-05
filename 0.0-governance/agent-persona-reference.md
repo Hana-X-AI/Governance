@@ -12,6 +12,20 @@ description: "Quick reference card for Hana-X agent personas and coordination"
 
 ## Quick Lookup: "Need X? Call Agent Y"
 
+### Governance & Orchestration (Entry Point)
+| Need | Agent | Invocation | Role |
+|------|-------|------------|------|
+| **PM orchestration (ALL work)** | **Agent Zero** | **@agent-zero** | **Universal PM Orchestrator** |
+| Project planning | Agent Zero | @agent-zero | Work Methodology execution |
+| Multi-agent coordination | Agent Zero | @agent-zero | Phase 2 collaborative planning |
+| Work breakdown | Agent Zero | @agent-zero | Task sizing & agent identification |
+| Governance authority | Agent Zero | @agent-zero | Constitution, templates, docs |
+| Final escalation | Agent Zero | @agent-zero | Terminal authority (NO further escalation) |
+
+**Note**: Agent Zero is the **single entry point** for ALL user requests. Agent Zero orchestrates the 30 specialist agents below.
+
+---
+
 ### Infrastructure & Operations
 | Need | Agent | Invocation | Service |
 |------|-------|------------|---------|
@@ -76,6 +90,18 @@ description: "Quick reference card for Hana-X agent personas and coordination"
 ---
 
 ## Service Ownership by Layer
+
+### Layer 0: Governance & Orchestration (Meta-Layer)
+| Service | Agent | Role |
+|---------|-------|------|
+| Universal PM Orchestration | Agent Zero | Entry point for ALL work, Work Methodology execution |
+| Governance Authority | Agent Zero | Constitution, Agent Catalog, templates, docs |
+| Multi-Agent Coordination | Agent Zero | Phase 2 collaborative planning across all 30 agents |
+| Terminal Escalation | Agent Zero | Final authority (NO further escalation) |
+
+**Profile**: `/srv/cc/Governance/0.1-agents/agent-zero.md`
+
+---
 
 ### Layer 1: Identity & Trust
 | Service | Agent | IP Address |
@@ -223,19 +249,21 @@ Expected outcome:
 
 ## Notes
 
-- **Total Agents**: 30
-- **Architecture Layers**: 6
-- **IP Range**: 192.168.10.200-229
+- **Total Agents**: 31 (Agent Zero + 30 specialist agents)
+- **Architecture Layers**: 7 (Layer 0: Governance & Orchestration + 6 specialist layers)
+- **Entry Point**: Agent Zero (@agent-zero) - Universal PM Orchestrator
+- **IP Range**: 192.168.10.200-229 (specialist agents)
 - **Domain**: hx.dev.local
 - **Environment**: Development/Testing
-- **Authority**: Constitution v2.0
+- **Authority**: Constitution v2.1
 
 ---
 
 **Document Location**: `/srv/cc/Governance/0.0-governance/agent-persona-reference.md`
-**Maintained By**: Governance Team
-**Version**: 1.0
+**Maintained By**: Agent Zero (Universal PM Orchestrator)
+**Version**: 1.1
 **Last Updated**: 2025-11-05
+**Entry Point**: Agent Zero (@agent-zero) - all work begins here
 
 ---
 
