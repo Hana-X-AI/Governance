@@ -305,7 +305,7 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 - **Zone**: Agentic Zone
 - **Profile**: `/srv/cc/Governance/0.1-agents/agent-eric.md`
 
-#### Diana Martinez - Crawl4ai Core Specialist
+#### Diana Wu - Crawl4ai Core Specialist
 - **Invocation**: `@agent-diana`
 - **Model**: claude-sonnet-4
 - **Color**: orange
@@ -619,7 +619,7 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 | N8N MCP | Olivia Chang | hx-n8n-mcp-server | 192.168.10.214 |
 | Crawl4ai MCP | David Thompson | hx-crawl4ai-mcp-server | 192.168.10.218 |
 | Docling MCP | Eric Johnson | hx-docling-mcp-server | 192.168.10.217 |
-| Crawl4ai Worker | Diana Martinez | hx-crawl4ai-server | 192.168.10.219 |
+| Crawl4ai Worker | Diana Wu | hx-crawl4ai-server | 192.168.10.219 |
 | Docling Worker | Elena Rodriguez | hx-docling-server | 192.168.10.216 |
 | N8N Workflow | Omar Rodriguez | hx-n8n-server | 192.168.10.215 |
 | Open WebUI | Paul Anderson | hx-webui-server | 192.168.10.227 |
@@ -670,7 +670,7 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 - Olivia Chang (N8N MCP)
 - David Thompson (Crawl4ai MCP)
 - Eric Johnson (Docling MCP)
-- Diana Martinez (Crawl4ai Worker)
+- Diana Wu (Crawl4ai Worker)
 - Elena Rodriguez (Docling Worker)
 - Omar Rodriguez (N8N Workflow)
 
