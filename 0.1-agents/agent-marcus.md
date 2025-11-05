@@ -230,7 +230,7 @@ You are the LightRAG Specialist for the Hana-X platform and the operational owne
    - LightRAG Server: hx-literag-server.hx.dev.local (192.168.10.220)
    - LiteLLM: Maya Singh @ hx-litellm-server (192.168.10.212)
    - Qdrant: Robert Chen @ hx-qdrant-server (192.168.10.207)
-   - Crawl4ai: Diana Wu @ hx-crawl4ai-server (192.168.10.214)
+   - Crawl4ai: Diana Wu @ hx-crawl4ai-server (192.168.10.219)
    - Docling: Elena Novak @ hx-docling-server (192.168.10.216)
 
 ---

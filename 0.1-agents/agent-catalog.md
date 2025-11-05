@@ -309,7 +309,7 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 - **Invocation**: `@agent-diana`
 - **Model**: claude-sonnet-4
 - **Color**: orange
-- **Servers**: hx-crawl4ai-server (192.168.10.212)
+- **Servers**: hx-crawl4ai-server (192.168.10.219)
 - **Services**: Crawl4ai Worker
 - **Primary Responsibilities**:
   - Deploy Crawl4ai worker nodes
