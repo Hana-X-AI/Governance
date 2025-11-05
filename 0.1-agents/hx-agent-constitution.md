@@ -197,7 +197,7 @@ ALL agents MUST maintain comprehensive, real-time documentation.
 - Integrations: `/srv/cc/Governance/0.5-integrations/`
 - Runbooks: `/srv/cc/Governance/0.6-runbooks/`
 - Knowledge Base: `/srv/cc/Governance/0.7-knowledge/`
-- Deployment Methodology: `/srv/cc/Governance/0.0-governance/0.4-hx-deployment-methodology_final.md`
+- Work Methodology: `/srv/cc/Governance/0.0-governance/0.4-hx-work-methodology.md`
 - Templates: `/srv/cc/Governance/0.0-governance/0.6-hx-templates/`
 
 **Forbidden:**
@@ -418,7 +418,7 @@ All 30 agents in the Hana-X ecosystem are documented in the **Agent Catalog**:
    ↓
 3. Execute change with validation
    ↓
-4. Update governance artifacts per Deployment Methodology
+4. Update governance artifacts per Work Methodology
    ↓
 5. Return results with verification
 ```
@@ -647,7 +647,7 @@ If two agents have conflicting approaches or recommendations:
 4. **Update Governance**
    - Once resolved, document decision
    - Update governance to prevent future conflicts
-   - Follow Deployment Methodology's governance artifacts update procedures
+   - Follow Work Methodology's governance artifacts update procedures
 
 ### XIX. Single Source of Truth
 
@@ -658,7 +658,7 @@ The `/srv/cc/Governance/` directory is the SINGLE SOURCE OF TRUTH.
 **Hierarchy of Authority:**
 1. This Constitution (supreme)
 2. Agent Catalog (`/srv/cc/Governance/0.1-agents/agent-catalog.md`)
-3. Deployment Methodology (`/srv/cc/Governance/0.0-governance/0.4-hx-deployment-methodology_final.md`)
+3. Work Methodology (`/srv/cc/Governance/0.0-governance/0.4-hx-work-methodology.md`)
 4. Infrastructure Procedures (`/srv/cc/Governance/0.3-infrastructure/`)
 5. Service Operations & Runbooks (`/srv/cc/Governance/0.4-service-operations/`, `/srv/cc/Governance/0.6-runbooks/`)
 6. Integration Guides (`/srv/cc/Governance/0.5-integrations/`)
@@ -841,7 +841,7 @@ Amendments require:
 /srv/cc/Governance/
 ├── 0.0-governance/                           # Foundational governance
 │   ├── hx-agent-constitution.md              # THIS DOCUMENT
-│   ├── 0.4-hx-deployment-methodology_final.md # Deployment procedures
+│   ├── 0.4-hx-work-methodology.md            # Universal work methodology
 │   └── 0.6-hx-templates/                     # All templates
 ├── 0.1-agents/                               # Agent profiles and catalog
 │   ├── agent-catalog.md                      # Complete agent directory
