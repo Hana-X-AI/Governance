@@ -1,0 +1,50 @@
+# Hana-X Governance Framework - Git Ignore
+# Exclude work-in-progress and temporary files from GitHub
+
+# Work In Progress directory (contains working documents, drafts, analysis)
+WIP/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor-specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python cache (if any Python scripts are added)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Log files
+*.log
+
+# Backup files
+*.backup
+*.old
+
+# Environment files (if any secrets accidentally placed)
+.env
+.env.local
+.env.*.local
+
+# Build artifacts (if documentation build tools used)
+dist/
+build/
+*.egg-info/
+
+# Notes and personal files
+NOTES.md
+TODO.md
+SCRATCH.md
