@@ -578,35 +578,35 @@ This catalog provides a **centralized directory** of all AI agents operating in 
 
 | Service | Agent | Server(s) | IP Address(es) |
 |---------|-------|-----------|----------------|
-| FreeIPA | Frank Lucas | hx-freeipa-server, hx-freeipa-replica | 192.168.10.200, 192.168.10.201 |
+| FreeIPA | Frank Lucas | hx-dc-server, hx-ca-server, hx-ssl-server | 192.168.10.200, 192.168.10.201, 192.168.10.202 |
 | Ubuntu Systems | William Taylor | All 30 servers | 192.168.10.200-229 |
 | Docker | Yasmin Patel | All container hosts | Multiple |
-| Ollama | Patricia Miller | hx-ollama-server | 192.168.10.202 |
-| LiteLLM | Maya Singh | hx-litellm-server | 192.168.10.203 |
+| Ollama | Patricia Miller | hx-ollama1-server, hx-ollama2-server, hx-ollama3-server | 192.168.10.204, 192.168.10.205, 192.168.10.206 |
+| LiteLLM | Maya Singh | hx-litellm-server | 192.168.10.212 |
 | PostgreSQL | Quinn Davis | hx-postgres-server | 192.168.10.209 |
 | Redis | Samuel Wilson | hx-redis-server | 192.168.10.210 |
 | Qdrant | Robert Chen | hx-qdrant-server | 192.168.10.207 |
 | Qdrant UI | Sarah Mitchell | hx-qdrant-ui-server | 192.168.10.208 |
-| Langchain | Laura Patel | hx-langchain-server | 192.168.10.216 |
-| LightRAG | Marcus Johnson | hx-lightrag-server | 192.168.10.217 |
-| FastMCP | George Kim | hx-fastmcp-server | 192.168.10.211 |
-| QMCP | Kevin O'Brien | hx-qmcp-server | 192.168.10.215 |
-| N8N MCP | Olivia Chang | hx-n8n-mcp-server | 192.168.10.220 |
-| Crawl4ai MCP | David Thompson | hx-crawl4ai-mcp-server | 192.168.10.213 |
-| Docling MCP | Eric Johnson | hx-docling-mcp-server | 192.168.10.215 |
-| Crawl4ai Worker | Diana Martinez | hx-crawl4ai-server | 192.168.10.212 |
-| Docling Worker | Elena Rodriguez | hx-docling-server | 192.168.10.214 |
-| N8N Workflow | Omar Rodriguez | hx-n8n-server | 192.168.10.219 |
-| Open WebUI | Paul Anderson | hx-owui-server | 192.168.10.224 |
-| CopilotKit | Hannah Brooks | hx-copilotkit-server | 192.168.10.212 |
-| AG-UI Protocol | Brian Foster | hx-agui-server | 192.168.10.214 |
-| Next.js Dev/Demo | Victor Lee | hx-nextjs-dev-server, hx-nextjs-demo-server | 192.168.10.227, 192.168.10.228 |
-| FastAPI | Fatima Hassan | hx-fastapi-server | 192.168.10.210 |
-| Ansible | Amanda Chen | hx-ansible-server | 192.168.10.203 |
+| Langchain | Laura Patel | hx-lang-server | 192.168.10.226 |
+| LightRAG | Marcus Johnson | hx-literag-server | 192.168.10.220 |
+| FastMCP | George Kim | hx-fastmcp-server | 192.168.10.213 |
+| QMCP | Kevin O'Brien | hx-qmcp-server | 192.168.10.211 |
+| N8N MCP | Olivia Chang | hx-n8n-mcp-server | 192.168.10.214 |
+| Crawl4ai MCP | David Thompson | hx-crawl4ai-mcp-server | 192.168.10.218 |
+| Docling MCP | Eric Johnson | hx-docling-mcp-server | 192.168.10.217 |
+| Crawl4ai Worker | Diana Martinez | hx-crawl4ai-server | 192.168.10.219 |
+| Docling Worker | Elena Rodriguez | hx-docling-server | 192.168.10.216 |
+| N8N Workflow | Omar Rodriguez | hx-n8n-server | 192.168.10.215 |
+| Open WebUI | Paul Anderson | hx-webui-server | 192.168.10.227 |
+| CopilotKit | Hannah Brooks | hx-cc-server | 192.168.10.224 |
+| AG-UI Protocol | Brian Foster | hx-agui-server | 192.168.10.221 |
+| Next.js Dev/Demo | Victor Lee | hx-dev-server, hx-demo-server | 192.168.10.222, 192.168.10.223 |
+| FastAPI | Fatima Hassan | TBD (containerized service) | TBD |
+| Ansible | Amanda Chen | hx-control-node | 192.168.10.203 |
 | GitHub Actions | Isaac Morgan | GitHub Cloud | N/A |
-| Testing & QA | Julia Santos | hx-testing-server | 192.168.10.214 |
-| Monitoring | Nathan Lewis | hx-monitoring-server | 192.168.10.218 |
-| Minio | Alex Rivera | hx-minio-server | 192.168.10.202 |
+| Testing & QA | Julia Santos | TBD (uses all test envs) | TBD |
+| Monitoring | Nathan Lewis | hx-metric-server | 192.168.10.225 |
+| Minio | Alex Rivera | TBD (object storage service) | TBD |
 | CodeRabbit | Carlos Mendez | CodeRabbit Cloud | N/A |
 
 ---

@@ -37,7 +37,7 @@ Omar Rodriguez is the N8N Workflow Worker Specialist for the Hana-X ecosystem, r
 ### Assigned Servers
 | Hostname | FQDN | IP Address | Architecture Layer | Security Zone |
 |----------|------|------------|-------------------|---------------|
-| hx-n8n-server | hx-n8n-server.hx.dev.local | 192.168.10.218 | Application Layer | Integration Zone |
+| hx-n8n-server | hx-n8n-server.hx.dev.local | 192.168.10.215 | Application Layer | Integration Zone |
 
 ### Service Endpoints
 - **N8N Web UI**: https://hx-n8n-server.hx.dev.local:5678 (Workflow editor)

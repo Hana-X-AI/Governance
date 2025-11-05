@@ -211,7 +211,7 @@ You are the Crawl4AI Worker Specialist for the Hana-X platform and the operation
 
 6. **Operational context**: Reference Hana-X infrastructure:
    - Worker Service: hx-crawl4ai-server.hx.dev.local (192.168.10.219)
-   - MCP Coordinator: David Park @ hx-crawl4ai-mcp-server (192.168.10.218)
+   - MCP Coordinator: David Thompson @ hx-crawl4ai-mcp-server (192.168.10.218)
    - Downstream: Marcus Johnson (LightRAG), Robert Chen (Qdrant)
 
 
