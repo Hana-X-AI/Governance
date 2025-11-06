@@ -1,0 +1,377 @@
+# FastMCP Client Guide
+
+**Document Type**: Technical Reference  
+**Created**: 2025-11-06  
+**Purpose**: Guide for using FastMCP library as a client to interact with MCP servers
+
+---
+
+## Overview
+
+The **FastMCP Client** (`fastmcp.Client`) enables programmatic interaction with MCP servers through various transport mechanisms:
+
+- **HTTP/HTTPS**: Remote server connections
+- **Stdio**: Local process communication (standard input/output)
+- **In-Memory**: Direct instance connection for testing
+
+### Key Features
+
+- Automatic transport detection
+- Async context manager for connection lifecycle
+- Support for tools, prompts, and resources
+- Multiple transport protocols
+
+---
+
+## Quick Start
+
+### Main Steps
+
+1. **Install FastMCP**: Ensure the library is installed in your Python environment
+2. **Import the Client**: Add `from fastmcp import Client` to your script
+3. **Instantiate the Client**: Create an instance of `Client` with server URL or file path
+4. **Use async context**: Wrap operations in `async with` block for proper lifecycle management
+5. **Call server operations**: Use methods like `list_tools()`, `call_tool()`, or `list_prompts()`
+
+---
+
+## Installation
+
+### 1. Install the FastMCP Library
+
+```bash
+pip install fastmcp
+```
+
+---
+
+## Usage Examples
+
+### 2. Calling a Remote MCP Server
+
+This example demonstrates connecting to a remote MCP server via HTTP endpoint.
+
+**Example: Remote HTTP Connection**
+
+```python
+import asyncio
+from fastmcp import Client
+
+async def main():
+    # Replace the URL with the address of the target MCP server.
+    # The client will automatically detect the appropriate transport.
+    server_url = "https://example.com/mcp"
+
+    async with Client(server_url) as client:
+        print(f"Connecting to server: {client.initialize_result.serverInfo.name}")
+
+        # List all available tools on the server.
+        tools = await client.list_tools()
+        print(f"\nAvailable tools: {[tool.name for tool in tools]}")
+
+        # Call a tool on the server, for example, an "add" tool.
+        # The arguments are passed as a dictionary.
+        try:
+            result = await client.call_tool("add", {"a": 5, "b": 3})
+            print(f"Result of 'add(5, 3)': {result.content[0].text}")
+        except Exception as e:
+            print(f"Error calling tool: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Note**: The example above assumes the remote server has an `add` tool. You can inspect available tools by running `client.list_tools()`.
+
+---
+
+### 3. Calling a Local MCP Server
+
+You can communicate with a local MCP server running as a separate process using the **Stdio transport** (standard input/output).
+
+#### Step 1: Create the Local Server File (`my_server.py`)
+
+This server exposes a simple `greet` tool.
+
+```python
+# my_server.py
+from fastmcp import FastMCP
+
+mcp = FastMCP("My Local Server")
+
+@mcp.tool
+def greet(name: str) -> str:
+    """Greets a user by name."""
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    mcp.run()
+```
+
+#### Step 2: Create the Client File (`client_app.py`)
+
+This client connects to and calls the `greet` tool on `my_server.py`.
+
+```python
+# client_app.py
+import asyncio
+from fastmcp import Client
+
+async def main():
+    # Connect to the local server script via the Stdio transport.
+    async with Client("my_server.py") as client:
+        print(f"Connected to server: {client.initialize_result.serverInfo.name}")
+
+        # Call the 'greet' tool on the server.
+        try:
+            name = "Alice"
+            result = await client.call_tool("greet", {"name": name})
+            print(f"Result of 'greet({name})': {result.content[0].text}")
+        except Exception as e:
+            print(f"Error calling tool: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Step 3: Run the Client
+
+The client automatically handles starting and communicating with the server process.
+
+```bash
+python client_app.py
+```
+
+**Output Example**:
+
+```text
+Connected to server: My Local Server
+Result of 'greet(Alice)': Hello, Alice!
+```
+
+---
+
+### 4. Advanced: In-Memory Server Connection
+
+For **testing purposes**, you can directly connect the client to a server instance in the same process. This avoids network calls and process management overhead.
+
+**Example: In-Memory Connection**
+
+```python
+import asyncio
+from fastmcp import Client, FastMCP
+
+async def main():
+    # Create the server instance directly in your script.
+    mcp_server_instance = FastMCP("In-Memory Server")
+
+    @mcp_server_instance.tool
+    def multiply(a: int, b: int) -> int:
+        """Multiplies two numbers."""
+        return a * b
+
+    # Create a client that connects directly to the server instance.
+    async with Client(mcp_server_instance) as client:
+        result = await client.call_tool("multiply", {"a": 4, "b": 6})
+        print(f"Result of 'multiply(4, 6)': {result.content[0].text}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Output Example**:
+
+```text
+Result of 'multiply(4, 6)': 24
+```
+
+---
+
+## Client API Methods
+
+### Connection Management
+
+- **`async with Client(server_url)`**: Context manager for connection lifecycle
+
+### Server Information
+
+- **`client.initialize_result.serverInfo.name`**: Get server name
+- **`await client.list_tools()`**: List all available tools
+- **`await client.list_prompts()`**: List all available prompts
+- **`await client.list_resources()`**: List all available resources
+
+### Tool Execution
+
+- **`await client.call_tool(name, arguments)`**: Call a tool with arguments
+  - `name` (str): Tool name
+  - `arguments` (dict): Tool arguments as key-value pairs
+  - Returns: Result object with `content[0].text` for output
+
+---
+
+## Transport Types
+
+| Transport | Use Case | Example Connection |
+|-----------|----------|-------------------|
+| **HTTP/HTTPS** | Remote servers | `Client("https://example.com/mcp")` |
+| **Stdio** | Local Python scripts | `Client("my_server.py")` |
+| **In-Memory** | Testing, same process | `Client(mcp_server_instance)` |
+
+---
+
+## Best Practices
+
+### 1. Always Use Async Context Manager
+
+```python
+async with Client(server_url) as client:
+    # Your operations here
+    pass
+```
+
+**Why**: Ensures proper connection initialization and cleanup.
+
+### 2. Error Handling
+
+```python
+try:
+    result = await client.call_tool("tool_name", {"arg": value})
+except Exception as e:
+    print(f"Error calling tool: {e}")
+```
+
+### 3. Inspect Available Tools
+
+Before calling a tool, check what's available:
+
+```python
+tools = await client.list_tools()
+print(f"Available tools: {[tool.name for tool in tools]}")
+```
+
+### 4. Use In-Memory for Testing
+
+For unit tests, use in-memory connections to avoid external dependencies:
+
+```python
+# Test setup
+test_server = FastMCP("Test Server")
+
+@test_server.tool
+def test_tool():
+    return "test result"
+
+# Test execution
+async with Client(test_server) as client:
+    result = await client.call_tool("test_tool", {})
+    assert result.content[0].text == "test result"
+```
+
+---
+
+## Common Use Cases
+
+### 1. Service Integration
+
+Connect multiple MCP servers for orchestration:
+
+```python
+async with Client("https://api.service1.com/mcp") as client1:
+    async with Client("https://api.service2.com/mcp") as client2:
+        result1 = await client1.call_tool("fetch_data", {})
+        result2 = await client2.call_tool("process_data", {"data": result1})
+```
+
+### 2. Local Development
+
+Test server implementations locally:
+
+```python
+async with Client("./my_dev_server.py") as client:
+    tools = await client.list_tools()
+    # Test each tool
+    for tool in tools:
+        print(f"Testing {tool.name}...")
+```
+
+### 3. Testing
+
+Validate server behavior:
+
+```python
+async def test_server_tools():
+    server = FastMCP("Test")
+    
+    @server.tool
+    def add(a: int, b: int) -> int:
+        return a + b
+    
+    async with Client(server) as client:
+        result = await client.call_tool("add", {"a": 2, "b": 3})
+        assert result.content[0].text == "5"
+```
+
+---
+
+## References
+
+### Official Documentation
+
+- [GitHub: jlowin/fastmcp](https://github.com/jlowin/fastmcp) - The fast, Pythonic way to build MCP servers
+- [FastMCP Client Documentation](https://fastmcp.dev/client) - Official client reference
+
+### Related Projects
+
+- [jtang613/gdb-mcp](https://github.com/jtang613/gdb-mcp) - A lightweight MCP Server for GDB automation
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue**: `ImportError: No module named 'fastmcp'`
+
+**Solution**: Install the library:
+
+```bash
+pip install fastmcp
+```
+
+**Issue**: Connection timeout to remote server
+
+**Solution**: Verify server URL and network connectivity:
+
+```python
+server_url = "https://example.com/mcp"  # Check URL
+```
+
+**Issue**: Tool not found
+
+**Solution**: List available tools first:
+
+```python
+tools = await client.list_tools()
+print(f"Available: {[t.name for t in tools]}")
+```
+
+---
+
+## Summary
+
+The FastMCP Client provides a simple, Pythonic way to interact with MCP servers:
+
+- ✅ **Multiple transports**: HTTP, Stdio, In-Memory
+- ✅ **Async/await**: Modern Python async patterns
+- ✅ **Context managers**: Automatic lifecycle management
+- ✅ **Type-safe**: Python type hints for better IDE support
+- ✅ **Testing-friendly**: In-memory connections for unit tests
+
+For more examples and advanced usage, see the [official FastMCP documentation](https://github.com/jlowin/fastmcp).
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: 2025-11-06  
+**Maintained By**: HX AI Ecosystem Team  
+**Classification**: Internal Technical Reference
