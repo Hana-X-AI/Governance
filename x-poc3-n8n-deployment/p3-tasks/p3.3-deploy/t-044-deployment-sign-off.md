@@ -80,12 +80,18 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" http://hx-n8n-server.hx.dev.local:
 # Database check
 echo ""
 echo "5. Database Connection:"
+# Load database password from credentials
+export PGPASSWORD='Major8859'
 psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT COUNT(*) as tables FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null
+unset PGPASSWORD
 
 # User check
 echo ""
 echo "6. Admin User:"
+# Load database password from credentials
+export PGPASSWORD='Major8859'
 psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT COUNT(*) as users FROM \"user\";" 2>/dev/null
+unset PGPASSWORD
 
 # Log errors
 echo ""
@@ -224,9 +230,9 @@ cat > /opt/n8n/docs/deployment-sign-off-report.md << REPORTEOF
 ### Database Status
 - **Database Server**: hx-postgres-server.hx.dev.local:5432
 - **Database Name**: n8n_poc3
-- **Connection**: $(psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT 'CONNECTED';" 2>/dev/null | grep -q CONNECTED && echo "Active" || echo "Failed (check credentials/network)")
-- **Tables Created**: $(psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "Unable to query (DB unreachable)")
-- **Admin Users**: $(psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -t -c "SELECT COUNT(*) FROM \"user\";" 2>/dev/null || echo "Unable to query (DB unreachable)")
+- **Connection**: $(export PGPASSWORD='Major8859'; psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT 'CONNECTED';" 2>/dev/null | grep -q CONNECTED && echo "Active" || echo "Failed (check credentials/network)"; unset PGPASSWORD)
+- **Tables Created**: $(export PGPASSWORD='Major8859'; psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null || echo "Unable to query (DB unreachable)"; unset PGPASSWORD)
+- **Admin Users**: $(export PGPASSWORD='Major8859'; psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -t -c "SELECT COUNT(*) FROM \"user\";" 2>/dev/null || echo "Unable to query (DB unreachable)"; unset PGPASSWORD)
 
 ### File System
 - **Application Size**: $(du -sh /opt/n8n/app/ | awk '{print $1}')
@@ -339,6 +345,289 @@ echo "=================================================="
 
 ## Validation
 
+### Enhanced Pre-Flight Database Validation Script
+
+This comprehensive validation script includes credential verification, structured error handling, and audit logging for all database operations.
+
+```bash
+#!/bin/bash
+# Enhanced Database Validation Script for n8n POC3 Deployment
+# Provides pre-flight checks, structured error handling, and audit logging
+# Created: 2025-11-09 (ACTION-002 remediation)
+
+set -euo pipefail  # Exit on error, undefined variables, and pipe failures
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+DB_HOST="hx-postgres-server.hx.dev.local"
+DB_PORT="5432"
+DB_NAME="n8n_poc3"
+DB_USER="n8n_user"
+DB_PASSWORD="Major8859"  # From credentials: svc-n8n password (URL-safe, no special chars)
+
+LOG_FILE="/opt/n8n/logs/database-validation-$(date +%Y%m%d-%H%M%S).log"
+VALIDATION_ERRORS=0
+VALIDATION_WARNINGS=0
+
+# ============================================================================
+# LOGGING FUNCTIONS
+# ============================================================================
+
+log_info() {
+    local msg="[INFO] $(date '+%Y-%m-%d %H:%M:%S') - $1"
+    echo "$msg" | tee -a "$LOG_FILE"
+}
+
+log_success() {
+    local msg="[SUCCESS] $(date '+%Y-%m-%d %H:%M:%S') - ✅ $1"
+    echo "$msg" | tee -a "$LOG_FILE"
+}
+
+log_warning() {
+    local msg="[WARNING] $(date '+%Y-%m-%d %H:%M:%S') - ⚠️  $1"
+    echo "$msg" | tee -a "$LOG_FILE"
+    ((VALIDATION_WARNINGS++))
+}
+
+log_error() {
+    local msg="[ERROR] $(date '+%Y-%m-%d %H:%M:%S') - ❌ $1"
+    echo "$msg" | tee -a "$LOG_FILE"
+    ((VALIDATION_ERRORS++))
+}
+
+# ============================================================================
+# PRE-FLIGHT VALIDATION
+# ============================================================================
+
+pre_flight_checks() {
+    log_info "=========================================="
+    log_info "PRE-FLIGHT VALIDATION CHECKS"
+    log_info "=========================================="
+
+    # Check 1: Credentials file exists and is accessible
+    log_info "Check 1: Verifying credentials availability..."
+    if [ -f "/srv/cc/Governance/0.0-governance/0.0.5-Delivery/0.0.5.2-credentials/0.0.5.2.1-credentials.md" ]; then
+        log_success "Credentials file accessible"
+    else
+        log_error "Credentials file NOT accessible at expected location"
+        return 1
+    fi
+
+    # Check 2: Database password is set
+    log_info "Check 2: Verifying database password is configured..."
+    if [ -n "$DB_PASSWORD" ]; then
+        log_success "Database password is configured (${#DB_PASSWORD} characters)"
+    else
+        log_error "Database password is NOT configured"
+        return 1
+    fi
+
+    # Check 3: psql client is installed
+    log_info "Check 3: Verifying psql client installation..."
+    if command -v psql >/dev/null 2>&1; then
+        PSQL_VERSION=$(psql --version | head -1)
+        log_success "psql client installed: $PSQL_VERSION"
+    else
+        log_error "psql client NOT installed"
+        return 1
+    fi
+
+    # Check 4: Network connectivity to database server
+    log_info "Check 4: Testing network connectivity to $DB_HOST:$DB_PORT..."
+    if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$DB_HOST/$DB_PORT" 2>/dev/null; then
+        log_success "Network connectivity to $DB_HOST:$DB_PORT is ACTIVE"
+    else
+        log_error "Network connectivity to $DB_HOST:$DB_PORT FAILED"
+        return 1
+    fi
+
+    # Check 5: DNS resolution
+    log_info "Check 5: Verifying DNS resolution for $DB_HOST..."
+    if host "$DB_HOST" >/dev/null 2>&1; then
+        DB_IP=$(host "$DB_HOST" | awk '/has address/ { print $4 }' | head -1)
+        log_success "DNS resolution successful: $DB_HOST -> $DB_IP"
+    else
+        log_error "DNS resolution FAILED for $DB_HOST"
+        return 1
+    fi
+
+    log_info "Pre-flight checks completed successfully"
+    echo ""
+}
+
+# ============================================================================
+# DATABASE VALIDATION FUNCTIONS
+# ============================================================================
+
+validate_database_connection() {
+    log_info "=========================================="
+    log_info "DATABASE CONNECTION VALIDATION"
+    log_info "=========================================="
+
+    export PGPASSWORD="$DB_PASSWORD"
+
+    # Test 1: Basic connectivity
+    log_info "Test 1: Testing basic database connectivity..."
+    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" >/dev/null 2>&1; then
+        log_success "Database connection successful"
+    else
+        log_error "Database connection FAILED (check credentials, network, or database availability)"
+        unset PGPASSWORD
+        return 1
+    fi
+
+    # Test 2: Database version
+    log_info "Test 2: Querying database version..."
+    DB_VERSION=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT version();" 2>/dev/null | xargs)
+    if [ -n "$DB_VERSION" ]; then
+        log_success "Database version: $DB_VERSION"
+    else
+        log_warning "Unable to retrieve database version"
+    fi
+
+    # Test 3: Table count
+    log_info "Test 3: Counting database tables..."
+    TABLE_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" 2>/dev/null | xargs)
+    if [ -n "$TABLE_COUNT" ]; then
+        if [ "$TABLE_COUNT" -gt 0 ]; then
+            log_success "Database contains $TABLE_COUNT tables"
+        else
+            log_warning "Database contains 0 tables (schema may not be migrated)"
+        fi
+    else
+        log_error "Unable to query table count"
+    fi
+
+    # Test 4: User count
+    log_info "Test 4: Counting admin users..."
+    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\dt "user"' 2>/dev/null | grep -q "user"; then
+        USER_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c 'SELECT COUNT(*) FROM "user";' 2>/dev/null | xargs)
+        if [ -n "$USER_COUNT" ] && [ "$USER_COUNT" -gt 0 ]; then
+            log_success "Admin users found: $USER_COUNT"
+        else
+            log_warning "No admin users found (user table exists but is empty)"
+        fi
+    else
+        log_warning "User table does not exist (n8n may not be initialized)"
+    fi
+
+    unset PGPASSWORD
+    log_info "Database validation completed"
+    echo ""
+}
+
+# ============================================================================
+# SCHEMA VALIDATION
+# ============================================================================
+
+validate_schema() {
+    log_info "=========================================="
+    log_info "DATABASE SCHEMA VALIDATION"
+    log_info "=========================================="
+
+    export PGPASSWORD="$DB_PASSWORD"
+
+    # Check for critical n8n tables
+    CRITICAL_TABLES=("user" "credentials_entity" "workflow_entity" "execution_entity")
+
+    for table in "${CRITICAL_TABLES[@]}"; do
+        log_info "Checking for table: $table..."
+        if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "\\dt \"$table\"" 2>/dev/null | grep -q "$table"; then
+            # Get row count
+            ROW_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM \"$table\";" 2>/dev/null | xargs)
+            log_success "Table '$table' exists with $ROW_COUNT row(s)"
+        else
+            log_warning "Table '$table' does NOT exist"
+        fi
+    done
+
+    unset PGPASSWORD
+    log_info "Schema validation completed"
+    echo ""
+}
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+main() {
+    log_info "=========================================="
+    log_info "N8N POC3 DATABASE VALIDATION SCRIPT"
+    log_info "=========================================="
+    log_info "Execution started: $(date)"
+    log_info "Database: $DB_NAME on $DB_HOST:$DB_PORT"
+    log_info "User: $DB_USER"
+    log_info "Log file: $LOG_FILE"
+    echo ""
+
+    # Ensure log directory exists
+    mkdir -p "$(dirname "$LOG_FILE")"
+
+    # Run pre-flight checks
+    if ! pre_flight_checks; then
+        log_error "Pre-flight checks FAILED - aborting validation"
+        exit 1
+    fi
+
+    # Run database validation
+    if ! validate_database_connection; then
+        log_error "Database connection validation FAILED"
+    fi
+
+    # Run schema validation
+    validate_schema
+
+    # Summary
+    log_info "=========================================="
+    log_info "VALIDATION SUMMARY"
+    log_info "=========================================="
+    log_info "Errors: $VALIDATION_ERRORS"
+    log_info "Warnings: $VALIDATION_WARNINGS"
+    log_info "Execution completed: $(date)"
+    log_info "Log file: $LOG_FILE"
+
+    if [ "$VALIDATION_ERRORS" -eq 0 ]; then
+        if [ "$VALIDATION_WARNINGS" -eq 0 ]; then
+            log_success "ALL VALIDATIONS PASSED - Database is fully operational"
+            exit 0
+        else
+            log_warning "Validation completed with $VALIDATION_WARNINGS warning(s) - Review recommended"
+            exit 0
+        fi
+    else
+        log_error "Validation FAILED with $VALIDATION_ERRORS error(s) - Immediate action required"
+        exit 1
+    fi
+}
+
+# Execute main function
+main "$@"
+```
+
+**Usage:**
+```bash
+# Make script executable
+chmod +x /opt/n8n/scripts/enhanced-database-validation.sh
+
+# Run validation
+/opt/n8n/scripts/enhanced-database-validation.sh
+
+# View logs
+tail -f /opt/n8n/logs/database-validation-*.log
+```
+
+**Features:**
+- ✅ Pre-flight credential availability checks
+- ✅ Network connectivity verification
+- ✅ DNS resolution validation
+- ✅ Structured error handling with exit codes
+- ✅ Comprehensive audit logging
+- ✅ Clear success/failure messaging
+- ✅ Non-interactive execution (PGPASSWORD configured)
+- ✅ Schema validation for critical n8n tables
+
 ### Final Validation Checklist
 
 **Validation Priority Levels**:
@@ -384,15 +673,19 @@ else
 fi
 
 # P0-4: Database connected
+export PGPASSWORD='Major8859'
 if psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT 1" >/dev/null 2>&1; then
   echo "✅ P0-4: Database connection active"
 else
   echo "❌ P0-4: Database connection FAILED (BLOCKING)"
   ((p0_failures++))
 fi
+unset PGPASSWORD
 
 # P0-5: Admin user exists
+export PGPASSWORD='Major8859'
 user_count=$(psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -t -c "SELECT COUNT(*) FROM \"user\";" 2>/dev/null | xargs)
+unset PGPASSWORD
 if [ -n "$user_count" ] && [ "$user_count" -ge 1 ]; then
   echo "✅ P0-5: Admin user exists ($user_count user(s))"
 else
@@ -509,6 +802,7 @@ template: /srv/cc/Governance/0.0-governance/0.0.6-Templates/0.0.6.10-individual-
 |---------|------|---------|--------|
 | 1.0 | 2025-11-07 | Initial task creation for deployment sign-off and validation | @agent-omar |
 | 1.1 | 2025-11-07 | **CodeRabbit Remediation**: Enhanced command robustness in report template (lines 214-229) - added error handling with `||` fallback values for all embedded bash commands (systemctl, pgrep, psql, curl). Changed `pgrep -f "n8n start"` to `pgrep -f "bin/n8n"` for correct process matching. Added descriptive fallback messages ("unreachable", "Unable to query", "No process found"). Enhanced validation checklist (lines 344-477) with priority classification: P0 BLOCKING (5 checks) vs P1 WARNING (3 checks). Added detailed sign-off decision logic with three exit paths: all pass, pass with warnings, or blocked. Documented priority rationale explaining operational vs best-practice failures. | Claude Code |
+| 1.2 | 2025-11-09 | **ACTION-002 Remediation - Fix Interactive Database Password Prompts**: Fixed all 7 psql commands to use PGPASSWORD environment variable for non-interactive execution (lines 83-94, 233-235, 676-688). Each psql command now loads password from credentials (`export PGPASSWORD='Major8859'`) before execution and unsets it after (`unset PGPASSWORD`) for security. Added comprehensive 150+ line enhanced database validation script (lines 348-629) with pre-flight checks (credentials availability, psql client installation, network connectivity, DNS resolution), structured error handling, audit logging, and schema validation for critical n8n tables. Script supports fully automated CI/CD execution without interactive password prompts. Credentials sourced from `/srv/cc/Governance/0.0-governance/0.0.5-Delivery/0.0.5.2-credentials/0.0.5.2.1-credentials.md` (svc-n8n user, password: Major8859). | @agent-quinn (Quinn Davis - PostgreSQL Database Specialist) |
 
 ---
 

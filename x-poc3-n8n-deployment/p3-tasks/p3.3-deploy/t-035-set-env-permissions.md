@@ -18,6 +18,8 @@
 
 Set restrictive permissions (600) on .env file to protect sensitive credentials including database passwords from unauthorized access.
 
+**Security Note**: See `/srv/cc/Governance/x-poc3-n8n-deployment/p7-post-deployment/ENV-FILE-SECURITY-GUIDE.md` for comprehensive security guidance on file permissions, compliance requirements, and production secrets management.
+
 ## Success Criteria
 - [ ] .env file permissions set to 600 (rw-------)
 - [ ] File owned by n8n:n8n

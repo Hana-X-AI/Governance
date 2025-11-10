@@ -9,7 +9,7 @@
 
 ## Summary
 
-**What**: Deploy n8n workflow automation platform (v1.117.0) on bare-metal Ubuntu server using Node.js and pnpm monorepo build, with PostgreSQL backend, Nginx reverse proxy, and SSL/TLS security.
+**What**: Deploy n8n workflow automation platform (v1.117.0 → v1.118.2 AS-BUILT) on bare-metal Ubuntu server using Node.js and pnpm monorepo build, with PostgreSQL backend, Nginx reverse proxy, and SSL/TLS security.
 
 **Why**: Enable internal automation capabilities while maintaining total environmental control and data sovereignty. Provide teams with unlimited workflow automation without commercial limitations, operating entirely within Hana-X on-premise infrastructure.
 
@@ -44,7 +44,7 @@
 - Network connectivity: 192.168.10.0/24 (all services reachable)
 
 **External Dependencies**:
-- n8n source repository at `/srv/knowledge/vault/n8n-master/` (v1.117.0)
+- n8n source repository at `/srv/knowledge/vault/n8n-master/` (v1.117.0 → v1.118.2 AS-BUILT)
 - Node.js 22.x LTS packages from NodeSource repository
 - pnpm 10.18.3 via corepack (Node.js bundled tool)
 - System build dependencies: build-essential, python3, python3-pip, git, curl, ca-certificates, libcairo2-dev, libpango1.0-dev, libjpeg-dev, libgif-dev, librsvg2-dev, libpixman-1-dev, pkg-config, libpq-dev
@@ -84,7 +84,7 @@
   **Note**: Built-in email/password authentication is development-grade and appropriate for POC3 only. For production deployment, implement LDAP (requires n8n Enterprise Edition) or SSO integration (OAuth2/SAML). Built-in authentication lacks enterprise features: no centralized user management, no group-based access control, no password policy enforcement, no audit logging, and no multi-factor authentication (MFA).
 
 - **FR-007: Database Integration**
-  n8n MUST successfully connect to PostgreSQL on startup, execute TypeORM migrations for schema creation (20+ tables), persist workflow definitions and execution history to database, and maintain connection pooling (≥10 connections).
+  n8n MUST successfully connect to PostgreSQL on startup, execute TypeORM migrations for schema creation (50 tables AS-BUILT, spec estimated 20+), persist workflow definitions and execution history to database, and maintain connection pooling (≥10 connections).
 
 - **FR-008: Web UI Accessibility**
   Web interface MUST be accessible at https://n8n.hx.dev.local with valid SSL certificate (no browser warnings), complete page load (no 404/500 errors), and support for WebSocket connections for real-time workflow execution feedback.
@@ -142,7 +142,7 @@
   User can create first admin account during setup, login with email/password credentials, create new workflow in editor (HTTP Request node + timer trigger), execute workflow successfully, view execution in history.
 
 - [x] **AC-003: Database Persistence**
-  PostgreSQL connection verified on n8n startup, TypeORM migrations execute successfully (20+ tables created), workflow executions persist to database, workflow data retrieval functional via SQL queries.
+  PostgreSQL connection verified on n8n startup, TypeORM migrations execute successfully (50 tables created AS-BUILT, spec estimated 20+), workflow executions persist to database, workflow data retrieval functional via SQL queries.
 
 - [x] **AC-004: Session Management** (Optional if Redis configured)
   User login creates session in Redis DB 2, session persists across browser page refresh, session expires after configured timeout (configurable via N8N_SESSION_TIMEOUT).
@@ -174,7 +174,7 @@
 | AC-001 | DNS resolution: `nslookup n8n.hx.dev.local` | Returns 192.168.10.215 |
 | AC-002 | Manual workflow creation test via web UI | Workflow created, executed, result in history |
 | AC-002 | First user creation during initial setup | Admin account created successfully |
-| AC-003 | Database connection test: `psql -h 192.168.10.209 -U n8n_user -d n8n_poc3 -c "\dt"` | Lists 20+ TypeORM tables |
+| AC-003 | Database connection test: `psql -h 192.168.10.209 -U n8n_user -d n8n_poc3 -c "\dt"` | Lists 50 TypeORM tables (AS-BUILT) |
 | AC-003 | Query execution history: `SELECT * FROM execution_entity LIMIT 10;` | Execution records retrieved |
 | AC-004 | Redis session check: `redis-cli -h 192.168.10.210 SELECT 2 && KEYS *` | Session keys present after login |
 | AC-005 | Reboot test: `sudo reboot && systemctl status n8n.service` | Service auto-started after reboot |
@@ -223,7 +223,7 @@
 2. **Validation Test 2: Database Connection**
    - **Given**: PostgreSQL database `n8n_poc3` created with user `n8n_user`
    - **When**: n8n service starts and connects to database
-   - **Then**: TypeORM migrations execute successfully, 20+ tables created, connection pool established
+   - **Then**: TypeORM migrations execute successfully, 50 tables created (AS-BUILT, spec estimated 20+), connection pool established
 
 3. **Validation Test 3: Web UI Access**
    - **Given**: Nginx reverse proxy configured with SSL certificate

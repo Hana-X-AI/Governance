@@ -118,7 +118,6 @@ fi
 **Expected Output**:
 ```
 === Setting Ownership on /opt/n8n/app/ ===
-Files to update: 10000+
 Current owner: n8n:n8n
 ✅ Ownership set on /opt/n8n/app/
 ```

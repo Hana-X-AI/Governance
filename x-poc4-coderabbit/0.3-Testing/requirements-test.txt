@@ -1,0 +1,12 @@
+# Test Dependencies for CodeRabbit Parser Test Suite
+# Julia Santos - Testing & QA Specialist
+# Updated: 2025-11-10
+
+# Core testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0         # Coverage reporting
+pytest-mock>=3.11.1       # Mocking support
+pytest-timeout>=2.2.0     # Test timeout handling
+
+# Additional utilities
+coverage>=7.3.0           # Coverage analysis

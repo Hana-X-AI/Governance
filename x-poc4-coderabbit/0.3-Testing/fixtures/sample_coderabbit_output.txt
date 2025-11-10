@@ -1,0 +1,80 @@
+CodeRabbit Review Results
+=========================
+
+Reviewed: 5 files
+Total Issues: 8
+
+---
+
+File: src/auth.py:42
+Error: Hardcoded API key detected
+API_KEY = 'sk-1234567890abcdef' found in source code. This is a critical security vulnerability.
+Move sensitive data to environment variables. Use .env file and load with os.getenv().
+Reference: OWASP A02:2021 - Cryptographic Failures
+
+---
+
+File: src/database.py:89
+Warning: SQL injection vulnerability
+cursor.execute('SELECT * FROM users WHERE id = ' + user_id)
+User input is directly concatenated into SQL query without sanitization.
+Use parameterized queries or ORM to prevent SQL injection attacks.
+Reference: OWASP A03:2021 - Injection
+
+---
+
+File: src/services/user_service.py:15
+Warning: Single Responsibility Principle violation
+Class UserService handles multiple responsibilities: database operations, email sending, and data validation.
+Each class should have only one reason to change. Extract email and validation logic into separate classes.
+Reference: Hana-X Standards Section 2.1 - SOLID Principles
+
+---
+
+File: src/utils/helpers.py:23
+Info: Missing type hints
+def process_data(input, config):
+Function parameters and return type lack type annotations.
+Add type hints to all function parameters and return types for better code clarity and IDE support.
+Reference: Hana-X Standards Section 6.1 - Python Standards
+
+---
+
+File: src/models/shape.py:56
+Warning: Open-Closed Principle violation
+if isinstance(shape, Circle): calculate_circle_area()
+Using isinstance checks violates OCP. Code must be modified to add new shape types.
+Use polymorphism: define calculate_area() method in base Shape class, override in subclasses.
+Reference: Hana-X Standards Section 2.2 - SOLID Principles
+
+---
+
+File: src/api/endpoints.py:103
+Info: Missing docstring
+def complex_endpoint_handler():
+Function lacks documentation explaining purpose, parameters, and return value.
+Add comprehensive docstring with description, args, returns, and example usage.
+Reference: Hana-X Standards Section 3.1 - Documentation
+
+---
+
+File: src/processors/data_processor.py:67
+Info: High cyclomatic complexity
+Function process_batch() has complexity of 15 (threshold: 10)
+Function is too complex with nested conditionals and loops.
+Extract sub-functions to reduce complexity and improve readability.
+Reference: Clean Code - Functions Should Do One Thing
+
+---
+
+File: src/interfaces/base_interface.py:12
+Suggestion: Interface Segregation Principle
+Interface IDataProcessor has 18 methods, but most implementations only use 4.
+Split into smaller, focused interfaces. Clients should not depend on methods they don't use.
+Reference: Hana-X Standards Section 2.4 - SOLID Principles
+
+---
+
+Summary:
+Found 8 issues: 🔴 1 critical (P0) | 🟡 3 high (P1) | ⚫ 3 medium (P2) | ⚪ 1 low (P3)
+⚠️  Critical issues must be fixed before deployment.

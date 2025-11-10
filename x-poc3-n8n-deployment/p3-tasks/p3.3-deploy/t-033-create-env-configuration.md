@@ -18,6 +18,8 @@
 
 Create comprehensive .env configuration file with 100+ environment variables for n8n, including database credentials from @agent-quinn, network settings, security config, and logging.
 
+**Security Note**: See `/srv/cc/Governance/x-poc3-n8n-deployment/p7-post-deployment/ENV-FILE-SECURITY-GUIDE.md` for comprehensive security guidance on password generation, file permissions, and production secrets management.
+
 ## Success Criteria
 - [ ] .env file created at /opt/n8n/.env
 - [ ] Database credentials from Quinn integrated
@@ -128,8 +130,17 @@ NODE_FUNCTION_ALLOW_EXTERNAL=*
 
 ENVEOF
 
+# SECURITY: Set restrictive permissions (owner read/write only)
+sudo chmod 600 /opt/n8n/.env
+
+# SECURITY: Set proper ownership (n8n user)
 sudo chown n8n:n8n /opt/n8n/.env
-echo "✅ .env created (needs DB password from Quinn)"
+
+# Verify permissions
+ls -la /opt/n8n/.env
+# Expected output: -rw------- 1 n8n n8n ... /opt/n8n/.env
+
+echo "✅ .env created with secure permissions (needs DB password from Quinn)"
 ```
 
 ### Step 3: Validate .env Syntax

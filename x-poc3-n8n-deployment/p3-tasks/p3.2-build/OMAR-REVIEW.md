@@ -426,7 +426,8 @@ From `/srv/knowledge/vault/n8n-master/CONTRIBUTING.md`:
 - Add log rotation awareness:
   ```bash
   # Check log size before starting
-  if [ -f /opt/n8n/logs/build.log ] && [ $(stat -f%z /opt/n8n/logs/build.log) -gt 104857600 ]; then
+  # GNU stat (Linux) - Ubuntu 22.04 compatible
+  if [ -f /opt/n8n/logs/build.log ] && [ $(stat -c%s /opt/n8n/logs/build.log) -gt 104857600 ]; then
     echo "⚠️  build.log is >100MB - consider archiving"
   fi
   ```

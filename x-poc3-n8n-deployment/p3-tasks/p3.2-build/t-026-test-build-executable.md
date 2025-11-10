@@ -221,13 +221,17 @@ fi
 echo "Testing n8n syntax and module loading..." | sudo tee -a /opt/n8n/logs/build.log
 
 # Try to run n8n with invalid command to test parsing (should fail gracefully)
-node packages/cli/bin/n8n invalidcommand 2>&1 | head -5 | sudo tee -a /opt/n8n/logs/build.log
-syntax_exit_code=$?
+# Correct approach: capture output BEFORE pipeline
+syntax_output=$(node packages/cli/bin/n8n invalidcommand 2>&1)
+syntax_exit_code=$?  # Capture node exit code immediately
+
+# Now display and log the output
+echo "$syntax_output" | head -5 | sudo tee -a /opt/n8n/logs/build.log
 
 echo "Syntax test exit code: $syntax_exit_code" | sudo tee -a /opt/n8n/logs/build.log
 
 # Exit code will be non-zero (command doesn't exist) but should show n8n error, not crash
-if echo "$syntax_output" | grep -qi "n8n\|command\|error"; then
+if [ -n "$syntax_output" ] && echo "$syntax_output" | grep -qi "n8n\|command\|error"; then
   echo "✅ n8n CLI parsed and responded to command" | sudo tee -a /opt/n8n/logs/build.log
 else
   echo "⚠️  Unexpected response to invalid command" | sudo tee -a /opt/n8n/logs/build.log
