@@ -54,7 +54,7 @@ All blocking items have been addressed:
 - Section headers treated as issues
 - Creates spurious issues from field labels
 
-**Required Remediation**: 19-25 hours (vs 4 hours originally estimated)
+**Required Remediation**: 28 hours total (21h development + 7h CI/CD; vs 4 hours originally estimated)
 
 ---
 
@@ -72,7 +72,7 @@ All blocking items have been addressed:
 
 | Factor | Linter Aggregator | Parser Redesign |
 |--------|------------------|-----------------|
-| **Timeline** | 8-12 hours | 19-25 hours |
+| **Timeline** | 12 hours (8h dev + 2h test + 2h CI/CD) | 28 hours (21h dev + 7h CI/CD) |
 | **Accuracy** | 95%+ (proven tools) | Unknown (35% current) |
 | **Tools** | bandit, pylint, mypy, radon | Custom regex parser |
 | **CI/CD Ready** | Immediate | BLOCKED (auth issues) |
@@ -106,7 +106,7 @@ Unified JSON Output
 **Key Advantages**:
 1. **No parsing needed** - Tools provide JSON natively
 2. **95%+ accuracy** - Industry-proven linters
-3. **Immediate value** - 8-12 hours to deployment
+3. **Immediate value** - 12 hours to deployment
 4. **CI/CD ready** - No auth barriers
 5. **Proven tools** - Community maintained
 6. **Same test suite** - Julia's work applies directly
@@ -117,7 +117,7 @@ Unified JSON Output
 
 ### Path A: Linter Aggregator (RECOMMENDED ✅)
 
-**Timeline**: 8-12 hours (1.5 days)
+**Timeline**: 12 hours total (8h dev + 2h test + 2h CI/CD)
 
 **Phase 1: Core Implementation** (8 hours)
 - Implement linter aggregator wrapper (2h)
@@ -141,11 +141,13 @@ Unified JSON Output
 - CI/CD ready immediately ✅
 - Isaac's enhancements integrated ✅
 
+**Scope Note**: The 12-hour estimate covers core implementation only. Per JULIA-LINTER-REVIEW, add 4-6 hours for comprehensive testing (85% overall coverage, 95% critical path) to achieve production readiness.
+
 ---
 
 ### Path B: Parser Redesign (NOT RECOMMENDED ❌)
 
-**Timeline**: 19-25 hours (3 weeks)
+**Timeline**: 28 hours total (21h development + 7h CI/CD)
 
 **Phase 1: Parser Redesign** (12 hours)
 - Implement state machine architecture (8h)
@@ -165,7 +167,7 @@ Unified JSON Output
 - Add Isaac's 3 enhancements (7h)
 - Deploy to production
 
-**Total**: 28 hours (3.5 days, maybe more)
+**Total**: 28 hours (12h + 4h + 5h + 7h = 28h; realistically 3.5+ days with unknowns)
 
 **Risks**:
 - Unknown accuracy after redesign
@@ -180,7 +182,7 @@ Unified JSON Output
 ### Path A (Linter Aggregator):
 | Criterion | Status |
 |-----------|--------|
-| Timeline | ✅ 1.5 days |
+| Timeline | ✅ 12 hours (1.5 days) |
 | Accuracy | ✅ 95%+ proven |
 | Risk | ✅ LOW |
 | Test Suite | ✅ Julia's works as-is |
@@ -192,13 +194,13 @@ Unified JSON Output
 ### Path B (Parser Redesign):
 | Criterion | Status |
 |-----------|--------|
-| Timeline | ❌ 3.5 days (minimum) |
+| Timeline | ❌ 28 hours (3.5+ days) |
 | Accuracy | ❌ Unknown (35% current) |
 | Risk | ❌ HIGH |
 | Test Suite | ✅ Julia's works |
 | CI/CD | ❌ BLOCKED by auth |
 | Maintenance | ❌ We own it |
-| Value | ❌ Delayed 2-3 weeks |
+| Value | ❌ Delayed 3.5+ days |
 | **Recommendation** | ❌ **DO NOT PROCEED** |
 
 ---
@@ -353,15 +355,14 @@ aggregate_to_unified_json() {
 - **Increase**: +4 hours (+33%)
 
 ### Path B (Parser Redesign - Not Recommended):
-- Development: 19-25 hours
-- Testing: 5 hours
+- Development: 21 hours (12h + 4h + 5h)
 - CI/CD: 7 hours
-- **Total**: 31-37 hours (4-5 days)
-- **Increase**: +19-25 hours (+158-208%)
+- **Total**: 28 hours (3.5+ days with uncertainty)
+- **Increase**: +16 hours (+133%)
 
 **Cost/Benefit**:
-- Path A: +4 hours for proven solution
-- Path B: +19-25 hours for uncertain outcome
+- Path A: 12h total for proven solution (8h dev + 2h test + 2h CI/CD)
+- Path B: 28h total for uncertain outcome (21h dev + 7h CI/CD)
 
 ---
 
@@ -397,10 +398,10 @@ aggregate_to_unified_json() {
 
 **Reasoning**:
 1. **Proven Technology**: Industry-standard linters with 95%+ accuracy
-2. **Fast Value**: 2 days to production vs 4-5 days uncertain
+2. **Fast Value**: 12 hours to production vs 28 hours uncertain
 3. **Lower Risk**: Proven tools vs unproven redesign
 4. **Team Consensus**: All 5 core team members agree
-5. **Cost Effective**: +4 hours vs +19-25 hours
+5. **Cost Effective**: 12h total vs 28h total (2.3x faster)
 6. **Maintainable**: Community tools vs custom parser
 7. **CI/CD Ready**: No auth barriers
 8. **Julia's Work Applies**: Test suite works for either path
@@ -411,7 +412,7 @@ aggregate_to_unified_json() {
 - Eric provided clear recommendation (linter aggregator)
 - Isaac documented CI/CD specs (complete)
 
-**We should build on this foundation, not waste 3 weeks redesigning a parser when proven tools exist.**
+**We should build on this foundation, not waste 28 hours redesigning a parser when proven tools exist.**
 
 ---
 
@@ -426,16 +427,16 @@ aggregate_to_unified_json() {
    - Value: Immediate
 
 2. **OR Require Path B (Parser Redesign)?**
-   - Timeline: 4-5 days (minimum)
+   - Timeline: 28 hours (3.5+ days with uncertainty)
    - Accuracy: Unknown (35% current)
    - Risk: HIGH
-   - Value: Delayed 2-3 weeks
+   - Value: Delayed 3.5+ days
 
-3. **Team capacity for 2-day implementation?**
-   - Eric: 12 hours over 2 days
-   - Julia: 4 hours validation
-   - Carlos: 4 hours infrastructure
-   - William: 4 hours infrastructure
+3. **Team capacity for 12-hour implementation?**
+   - Eric: 8 hours core implementation
+   - Eric: 2 hours integration + testing
+   - Eric: 2 hours CI/CD enhancements
+   - Julia: Available for validation
 
 4. **Start date?**
    - Ready to begin immediately upon approval
@@ -494,5 +495,5 @@ aggregate_to_unified_json() {
 ---
 
 *Pragmatism = Build what works > Redesign what's broken*
-*Value = 2 days to production > 3 weeks uncertain*
+*Value = 12 hours to production > 28 hours uncertain*
 *Risk = Proven tools > Unproven redesign*

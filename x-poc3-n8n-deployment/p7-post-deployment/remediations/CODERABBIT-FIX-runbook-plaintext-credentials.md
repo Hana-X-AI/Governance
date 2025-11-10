@@ -18,6 +18,12 @@
 
 **Database password appears in multiple locations throughout operational runbook**:
 
+> **⚠️ ENVIRONMENT CONTEXT REQUIRED**
+>
+> **For Development Environment**: The credentials shown below are documentation/example only; rotation is optional.
+>
+> **For Production Environment**: Credentials MUST be rotated and remediated before deployment. See remediation section for secure alternatives.
+
 **Line 221** (Configuration table):
 ```markdown
 | `DB_POSTGRESDB_PASSWORD` | `Major8859` | Database password (URL-safe) |
