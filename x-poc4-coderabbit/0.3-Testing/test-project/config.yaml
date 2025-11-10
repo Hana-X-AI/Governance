@@ -1,0 +1,4 @@
+# Test configuration file
+app:
+  name: test-project
+  version: 1.0

@@ -673,7 +673,13 @@ coverage.json
 cd /srv/cc/hana-x-infrastructure/.claude/agents/roger/
 
 # Update environment variable (if using .env file)
-sed -i 's/^CODERABBIT_API_KEY=.*/CODERABBIT_API_KEY=cr-NEW_KEY_HERE/' config/.env
+# First verify the file exists
+if [ -f configs/.env ]; then
+    sed -i 's/^CODERABBIT_API_KEY=.*/CODERABBIT_API_KEY=cr-NEW_KEY_HERE/' configs/.env
+    echo "✅ Updated configs/.env"
+else
+    echo "⚠️  configs/.env not found - using global environment variable method"
+fi
 
 # OR update global environment (if set globally)
 export CODERABBIT_API_KEY="cr-NEW_KEY_HERE"
@@ -896,13 +902,15 @@ _____________
 
 ---
 
-**Document Version**: 2.1 (VERIFY-FIRST methodology + Global Installation)
+**Document Version**: 2.2 (Task Matrix Refinements)
 **Classification**: Internal - Delivery
 **Status**: Pre-Implementation Checklist (Corrected)
-**Last Updated**: 2025-11-10 (Added global installation requirements)
+**Last Updated**: 2025-11-10 (Task matrix refinements per CodeRabbit review)
 **Next Action**: William Taylor begins Phase 0 verification work
 
-**Updates in v2.1**:
+**Updates in v2.2**:
+- ✅ Task 7 clarified: Linter output files go to `.coderabbit/linter-output/` (not root `/linter-output/`)
+- ✅ Task 22 added: Credential rotation post-deployment procedure documented
 - ✅ CodeRabbit CLI must be globally installed at `/usr/local/bin/coderabbit`
 - ✅ All projects (current and future) can access without PATH modifications
 - ✅ Global symlink required: `/usr/local/bin/coderabbit` → `/home/agent0/.local/bin/coderabbit`

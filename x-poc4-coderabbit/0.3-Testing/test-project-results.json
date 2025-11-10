@@ -1,0 +1,333 @@
+🔍 Running linter suite...
+  ⚡ Parallel execution enabled (ThreadPoolExecutor)
+  → Running bandit (security)...
+  → Running pylint (quality)...
+  → Running mypy (types)...
+  → Running radon (complexity)...
+  → Running black (formatting)...
+  → Running pytest (coverage)...
+    ✓ radon: 0 issues found
+    ✓ bandit: 9 issues found
+    ✓ black: 0 issues found
+    ✓ pytest: 1 issues found
+    ✓ pylint: 14 issues found
+    ✓ mypy: 0 issues found
+
+================================================================================
+LINTER AGGREGATOR RESULTS (JSON)
+================================================================================
+{
+  "status": "completed",
+  "total_issues": 24,
+  "critical_issues": 0,
+  "high_issues": 9,
+  "medium_issues": 15,
+  "low_issues": 0,
+  "info_issues": 0,
+  "issues_by_category": {
+    "security": 9,
+    "quality": 14,
+    "testing": 1
+  },
+  "issues": [
+    {
+      "id": "BAN-0003",
+      "priority": "P1",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/test_sample.py",
+      "line": 26,
+      "message": "Possible SQL injection vector through string-based query construction.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b608_hardcoded_sql_expressions.html",
+      "fix": "Possible SQL injection",
+      "fingerprint": "7739ac654335f195"
+    },
+    {
+      "id": "BAN-0004",
+      "priority": "P1",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/test_sample.py",
+      "line": 29,
+      "message": "Use of unsafe yaml load. Allows instantiation of arbitrary objects. Consider yaml.safe_load().",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b506_yaml_load.html",
+      "fix": "Avoid yaml.load(), use yaml.safe_load()",
+      "fingerprint": "bdccac0e77dcc09f"
+    },
+    {
+      "id": "COV-0010",
+      "priority": "P1",
+      "category": "testing",
+      "source": "pytest",
+      "file": "Overall",
+      "line": null,
+      "message": "Test coverage is 60.0% (target: \u226580%)",
+      "details": "Missing coverage: 40.0%",
+      "fix": "Add unit tests for uncovered code",
+      "fingerprint": "7429d700f5b3963d"
+    },
+    {
+      "id": "PYL-0022",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 14,
+      "message": "Unused import os",
+      "details": "unused-import (W0611)",
+      "fix": null,
+      "fingerprint": "a6b1bbca4edde7b8"
+    },
+    {
+      "id": "PYL-0023",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 15,
+      "message": "Unused import pickle",
+      "details": "unused-import (W0611)",
+      "fix": null,
+      "fingerprint": "8e25d49282b67cbf"
+    },
+    {
+      "id": "PYL-0012",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 29,
+      "message": "Using open without explicitly specifying an encoding",
+      "details": "unspecified-encoding (W1514)",
+      "fix": null,
+      "fingerprint": "c0fd0cf18d15f176"
+    },
+    {
+      "id": "PYL-0013",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 29,
+      "message": "Unused variable 'config'",
+      "details": "unused-variable (W0612)",
+      "fix": null,
+      "fingerprint": "e6b7b49743e7d0b2"
+    },
+    {
+      "id": "PYL-0018",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 75,
+      "message": "Unused variable 'another_unused'",
+      "details": "unused-variable (W0612)",
+      "fix": null,
+      "fingerprint": "cae684a3b6f49003"
+    },
+    {
+      "id": "PYL-0020",
+      "priority": "P1",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 85,
+      "message": "Unnecessary pass statement",
+      "details": "unnecessary-pass (W0107)",
+      "fix": null,
+      "fingerprint": "ca316d8ff006de09"
+    },
+    {
+      "id": "BAN-0001",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/test_sample.py",
+      "line": 15,
+      "message": "Consider possible security implications associated with pickle module.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_imports.html#b403-import-pickle",
+      "fix": "Consider implications of importing pickle",
+      "fingerprint": "255d1eb0cba50834"
+    },
+    {
+      "id": "BAN-0002",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/test_sample.py",
+      "line": 19,
+      "message": "Possible hardcoded password: 'hardcoded_password_123'",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b105_hardcoded_password_string.html",
+      "fix": "Use secrets module or environment variables instead of hardcoded passwords",
+      "fingerprint": "60bf91912874c27a"
+    },
+    {
+      "id": "BAN-0005",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/tests/test_basic.py",
+      "line": 19,
+      "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html",
+      "fix": "Review security best practices for this issue",
+      "fingerprint": "dff643d0749fe885"
+    },
+    {
+      "id": "BAN-0006",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/tests/test_basic.py",
+      "line": 20,
+      "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html",
+      "fix": "Review security best practices for this issue",
+      "fingerprint": "06bf02d98175ab51"
+    },
+    {
+      "id": "BAN-0007",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/tests/test_basic.py",
+      "line": 25,
+      "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html",
+      "fix": "Review security best practices for this issue",
+      "fingerprint": "4d4657dcf63ec953"
+    },
+    {
+      "id": "BAN-0008",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/tests/test_basic.py",
+      "line": 26,
+      "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html",
+      "fix": "Review security best practices for this issue",
+      "fingerprint": "b15168697f6c6d0e"
+    },
+    {
+      "id": "BAN-0009",
+      "priority": "P2",
+      "category": "security",
+      "source": "bandit",
+      "file": "/srv/cc/Governance/x-poc4-coderabbit/0.3-Testing/test-project/tests/test_basic.py",
+      "line": 32,
+      "message": "Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.",
+      "details": "https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html",
+      "fix": "Review security best practices for this issue",
+      "fingerprint": "4995b87546f3d789"
+    },
+    {
+      "id": "PYL-0011",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 29,
+      "message": "Consider using 'with' for resource-allocating operations",
+      "details": "consider-using-with (R1732)",
+      "fix": null,
+      "fingerprint": "ef2bf3cef8713892"
+    },
+    {
+      "id": "PYL-0014",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 34,
+      "message": "Too many arguments (7/5)",
+      "details": "too-many-arguments (R0913)",
+      "fix": null,
+      "fingerprint": "c38d8a2ea3bc7d01"
+    },
+    {
+      "id": "PYL-0015",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 34,
+      "message": "Too many positional arguments (7/5)",
+      "details": "too-many-positional-arguments (R0917)",
+      "fix": null,
+      "fingerprint": "01b640d860bf536e"
+    },
+    {
+      "id": "PYL-0016",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 34,
+      "message": "Too many branches (14/12)",
+      "details": "too-many-branches (R0912)",
+      "fix": null,
+      "fingerprint": "87b34436419dd34c"
+    },
+    {
+      "id": "PYL-0017",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 41,
+      "message": "Too many nested blocks (7/5)",
+      "details": "too-many-nested-blocks (R1702)",
+      "fix": null,
+      "fingerprint": "344b7a64bb90d498"
+    },
+    {
+      "id": "PYL-0019",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 83,
+      "message": "Method name \"BadMethodName\" doesn't conform to snake_case naming style",
+      "details": "invalid-name (C0103)",
+      "fix": null,
+      "fingerprint": "2475b0bf09bfdb39"
+    },
+    {
+      "id": "PYL-0021",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/test_sample.py",
+      "line": 87,
+      "message": "Missing function or method docstring",
+      "details": "missing-function-docstring (C0116)",
+      "fix": null,
+      "fingerprint": "a7705371a130a2c8"
+    },
+    {
+      "id": "PYL-0024",
+      "priority": "P2",
+      "category": "quality",
+      "source": "pylint",
+      "file": "test-project/tests/test_basic.py",
+      "line": 14,
+      "message": "Import \"from test_sample import missing_types, divide, complex_function\" should be placed at the top of the module",
+      "details": "wrong-import-position (C0413)",
+      "fix": null,
+      "fingerprint": "691b24f864e2a12d"
+    }
+  ],
+  "linters_run": [
+    "radon",
+    "bandit",
+    "black",
+    "pytest",
+    "pylint",
+    "mypy"
+  ],
+  "linters_failed": [],
+  "execution_time_seconds": 1.49,
+  "summary": "Found 24 issues: | \ud83d\udfe1 9 high (P1) | \ud83d\udfe0 15 medium (P2) | \u26a0\ufe0f  High-priority issues should be fixed soon."
+}
