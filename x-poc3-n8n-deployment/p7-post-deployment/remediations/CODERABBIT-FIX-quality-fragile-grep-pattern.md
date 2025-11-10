@@ -125,28 +125,32 @@ fi
 
 ### Alternative Fix: Improve grep Pattern (If Exit Codes Not Available)
 
-**If CodeRabbit doesn't provide reliable exit codes**, use robust grep patterns:
+**If CodeRabbit doesn't provide reliable exit codes**, use robust grep patterns with numeric counts:
 
 **Line 223 - Change to**:
 ```bash
 # Run review
 coderabbit review --plain $DOCUMENT > /tmp/review_$ITERATION.txt 2>&1
 
-# Check for multiple issue indicators (case-insensitive)
-if grep -qiE "(issue|error|violation|finding|problem|warning).*found" /tmp/review_$ITERATION.txt && \
-   ! grep -qiE "(no|zero|0).*(issue|error|violation|finding)" /tmp/review_$ITERATION.txt; then
-    echo "❌ ISSUES FOUND:"
-    cat /tmp/review_$ITERATION.txt
-else
+# Check for numeric issue counts (robust pattern matching)
+# Positive match: Requires numeric count (1-9 prefix) before issue words
+# Negative match: Explicit "no/zero/0" issue patterns
+if grep -qiE "(no|zero|0).*(issue|error|violation|finding)" /tmp/review_$ITERATION.txt && \
+   ! grep -qiE "[1-9][0-9]*.*(issue|error|violation|finding|problem|warning)" /tmp/review_$ITERATION.txt; then
     echo "✅ PASS: No issues detected"
     cat /tmp/review_$ITERATION.txt
     exit 0
+else
+    echo "❌ ISSUES FOUND:"
+    cat /tmp/review_$ITERATION.txt
 fi
 ```
 
 **Improvements**:
 - `-i`: Case-insensitive matching
 - `-E`: Extended regex for alternation
+- **Numeric count required**: `[1-9][0-9]*` ensures pattern matches "3 issues" but not "No issues"
+- **Explicit negative check**: `(no|zero|0)` matches common "no issues" phrasings
 - Multiple terms: issue|error|violation|finding|problem|warning
 - Negative check: Exclude "no issues found" messages
 - Context validation: Look for patterns like "X issues found"
@@ -155,24 +159,67 @@ fi
 
 ### Alternative Fix: Parse Structured Output (BEST if Available)
 
+**Prerequisites**: Requires `jq` for JSON parsing (install: `sudo apt-get install jq`)
+
 **If CodeRabbit provides JSON output**:
 
 ```bash
+# Check for jq availability (required dependency)
+if ! command -v jq >/dev/null 2>&1; then
+    echo "❌ ERROR: jq is required for JSON parsing but not installed"
+    echo "   Install with: sudo apt-get install jq"
+    echo "   Or use exit-code or grep-based detection methods instead"
+    exit 2
+fi
+
 # Run review with JSON output
 coderabbit review --format=json $DOCUMENT > /tmp/review_$ITERATION.json 2>&1
 
-# Parse JSON for issue count
-ISSUE_COUNT=$(jq '.issues | length' /tmp/review_$ITERATION.json 2>/dev/null || echo "-1")
+# Parse JSON for issue count (fail loudly on parse errors)
+ISSUE_COUNT=$(jq '.issues | length' /tmp/review_$ITERATION.json 2>/dev/null)
 
+if [ $? -ne 0 ] || [ -z "$ISSUE_COUNT" ]; then
+    echo "❌ ERROR: Failed to parse CodeRabbit JSON output"
+    echo "   This may indicate:"
+    echo "   - CodeRabbit did not produce valid JSON"
+    echo "   - Review command failed"
+    echo "   - Output format changed"
+    echo ""
+    echo "Raw output:"
+    cat /tmp/review_$ITERATION.json
+    exit 2
+fi
+
+# Check issue count
 if [ "$ISSUE_COUNT" -eq 0 ]; then
     echo "✅ PASS: No issues found"
     exit 0
 elif [ "$ISSUE_COUNT" -gt 0 ]; then
     echo "❌ ISSUES FOUND: $ISSUE_COUNT issue(s)"
-    jq '.issues[] | "- \(.title): \(.message)"' /tmp/review_$ITERATION.json
+    jq -r '.issues[] | "- \(.title): \(.message)"' /tmp/review_$ITERATION.json
 else
-    echo "⚠️  Unable to parse CodeRabbit output, falling back to manual review"
-    cat /tmp/review_$ITERATION.json
+    echo "❌ ERROR: Invalid issue count: $ISSUE_COUNT"
+    exit 2
+fi
+```
+
+**Fallback Option (if jq unavailable)**: Use Python built-in JSON parser:
+
+```bash
+# Parse JSON with Python (no external dependencies on most systems)
+ISSUE_COUNT=$(python3 -c "
+import json, sys
+try:
+    with open('/tmp/review_$ITERATION.json') as f:
+        data = json.load(f)
+        print(len(data.get('issues', [])))
+except Exception as e:
+    print('ERROR: ' + str(e), file=sys.stderr)
+    sys.exit(1)
+" 2>/dev/null)
+
+if [ $? -ne 0 ]; then
+    echo "❌ ERROR: Failed to parse JSON (Python fallback also failed)"
     exit 2
 fi
 ```
@@ -232,16 +279,38 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
         echo "❌ ERROR: CodeRabbit review failed to run"
         cat /tmp/review_$ITERATION.txt
         exit 2
+    elif [ $REVIEW_EXIT_CODE -eq 127 ]; then
+        echo "❌ FATAL ERROR: 'coderabbit' command not found (exit code 127)"
+        echo "   The 'coderabbit' executable is not installed or not in PATH"
+        echo "   Install CodeRabbit or check PATH configuration"
+        echo ""
+        echo "Attempted command: coderabbit review --plain \"$DOCUMENT\""
+        echo "Exit code: $REVIEW_EXIT_CODE"
+        cat /tmp/review_$ITERATION.txt 2>/dev/null || true
+        exit 127
     fi
 
     # Method 2: Fallback to robust pattern matching
     # (Use this if exit codes are not reliable)
-    if grep -qiE "(no|zero|0).*(issue|error|violation|finding)" /tmp/review_$ITERATION.txt && \
-       ! grep -qiE "[1-9][0-9]*.*(issue|error|violation|finding)" /tmp/review_$ITERATION.txt; then
+    
+    # Stage 1: Fail immediately if numeric issue counts are present
+    if grep -qiE "[1-9][0-9]*.*(issue|error|violation|finding|problem|warning)" /tmp/review_$ITERATION.txt; then
+        echo "❌ FAIL: Numeric issue count detected"
+        # Continue to issue display section below
+    # Stage 2: Pass if explicit negation OR no issue keywords at all
+    elif grep -qiE "(no|zero|0).*(issue|error|violation|finding|problem|warning)" /tmp/review_$ITERATION.txt || \
+         ! grep -qiE "(issue|error|violation|finding|problem|warning)" /tmp/review_$ITERATION.txt; then
         echo "✅ PASS: No issues detected via pattern matching"
         cat /tmp/review_$ITERATION.txt
         exit 0
+    else
+        # Stage 3: Ambiguous output - issue keywords present but no clear pass/fail
+        echo "⚠️  AMBIGUOUS: Issue keywords found without clear numeric count or negation"
+        echo "   Recommend: Check exit code or manual verification"
+        # Continue to issue display section below
     fi
+    
+    # If we reach here, issues were found or output is ambiguous
 
     # Issues found, display and prompt for fix
     echo "❌ ISSUES FOUND:"
@@ -250,8 +319,23 @@ while [ $ITERATION -lt $MAX_ITERATIONS ]; do
 
     if [ $ITERATION -lt $MAX_ITERATIONS ]; then
         echo "Applying fixes (iteration $ITERATION)..."
+        
+        # Detect CI environment (skip interactive prompts)
+        if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_HOME:-}" ]; then
+            echo "CI environment detected - skipping interactive prompt"
+            echo "Failing due to unresolved issues in CI"
+            exit 1
+        fi
+        
+        # Interactive mode: prompt with timeout
         echo "Press Enter after fixing issues to re-review, or Ctrl+C to abort"
-        read -r
+        echo "(Auto-continuing in 300 seconds if no input...)"
+        if read -t 300 -r; then
+            echo "Continuing to next iteration..."
+        else
+            echo ""
+            echo "⏱️  Timeout reached - auto-continuing to next iteration"
+        fi
     fi
 done
 
@@ -279,12 +363,23 @@ exit 1
 #!/bin/bash
 # Test suite for CodeRabbit issue detection
 
+set -euo pipefail
+
+# Create secure temporary directory
+TEMP_DIR=$(mktemp -d -t coderabbit-test.XXXXXX)
+
+# Cleanup trap - remove temp directory on exit (success or failure)
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
 echo "=== CodeRabbit Issue Detection Test Suite ==="
+echo "Using temp directory: $TEMP_DIR"
+echo ""
 
 # Test 1: No issues (various phrasings)
 echo "Test 1: No issues messages"
-echo "✅ No issues found" > /tmp/test1.txt
-if grep -qiE "(no|zero|0).*(issue|error|violation)" /tmp/test1.txt; then
+TEST1_FILE="$TEMP_DIR/test1.txt"
+echo "✅ No issues found" > "$TEST1_FILE"
+if grep -qiE "(no|zero|0).*(issue|error|violation)" "$TEST1_FILE"; then
     echo "✅ PASS - Detected 'no issues' message"
 else
     echo "❌ FAIL - Missed 'no issues' message"
@@ -292,8 +387,9 @@ fi
 
 # Test 2: Issues found (lowercase)
 echo "Test 2: Issues found (lowercase)"
-echo "3 issues found" > /tmp/test2.txt
-if grep -qiE "[1-9][0-9]*.*(issue|error)" /tmp/test2.txt; then
+TEST2_FILE="$TEMP_DIR/test2.txt"
+echo "3 issues found" > "$TEST2_FILE"
+if grep -qiE "[1-9][0-9]*.*(issue|error)" "$TEST2_FILE"; then
     echo "✅ PASS - Detected lowercase 'issues'"
 else
     echo "❌ FAIL - Missed lowercase 'issues'"
@@ -301,8 +397,9 @@ fi
 
 # Test 3: Issues found (capitalized)
 echo "Test 3: Issues found (capitalized)"
-echo "2 Issues detected" > /tmp/test3.txt
-if grep -qiE "[1-9][0-9]*.*(issue|error)" /tmp/test3.txt; then
+TEST3_FILE="$TEMP_DIR/test3.txt"
+echo "2 Issues detected" > "$TEST3_FILE"
+if grep -qiE "[1-9][0-9]*.*(issue|error)" "$TEST3_FILE"; then
     echo "✅ PASS - Detected capitalized 'Issues'"
 else
     echo "❌ FAIL - Missed capitalized 'Issues'"
@@ -310,8 +407,9 @@ fi
 
 # Test 4: Alternative terminology
 echo "Test 4: Alternative terminology (errors, violations)"
-echo "1 error found, 2 violations detected" > /tmp/test4.txt
-if grep -qiE "[1-9][0-9]*.*(issue|error|violation)" /tmp/test4.txt; then
+TEST4_FILE="$TEMP_DIR/test4.txt"
+echo "1 error found, 2 violations detected" > "$TEST4_FILE"
+if grep -qiE "[1-9][0-9]*.*(issue|error|violation)" "$TEST4_FILE"; then
     echo "✅ PASS - Detected alternative terminology"
 else
     echo "❌ FAIL - Missed alternative terminology"
@@ -319,9 +417,10 @@ fi
 
 # Test 5: False positive check (word 'issue' in clean message)
 echo "Test 5: False positive prevention"
-echo "No issue detected. All checks passed." > /tmp/test5.txt
-if grep -qiE "(no|zero|0).*(issue|error)" /tmp/test5.txt && \
-   ! grep -qiE "[1-9][0-9]*.*(issue|error)" /tmp/test5.txt; then
+TEST5_FILE="$TEMP_DIR/test5.txt"
+echo "No issue detected. All checks passed." > "$TEST5_FILE"
+if grep -qiE "(no|zero|0).*(issue|error)" "$TEST5_FILE" && \
+   ! grep -qiE "[1-9][0-9]*.*(issue|error)" "$TEST5_FILE"; then
     echo "✅ PASS - Correctly identified as no issues"
 else
     echo "❌ FAIL - False positive (reported issues when none exist)"
@@ -329,6 +428,8 @@ fi
 
 echo ""
 echo "=== Test Suite Complete ==="
+echo "Temp directory will be cleaned up automatically"
+# Note: Cleanup happens via EXIT trap
 ```
 
 ---

@@ -18,7 +18,7 @@
 
 Create comprehensive .env configuration file with 100+ environment variables for n8n, including database credentials from @agent-quinn, network settings, security config, and logging.
 
-**Security Note**: See `/srv/cc/Governance/x-poc3-n8n-deployment/p7-post-deployment/ENV-FILE-SECURITY-GUIDE.md` for comprehensive security guidance on password generation, file permissions, and production secrets management.
+**Security Note**: See [ENV-FILE-SECURITY-GUIDE.md](../../p7-post-deployment/ENV-FILE-SECURITY-GUIDE.md) for comprehensive security guidance. **Quick summary**: Always use cryptographically secure password generators (e.g., `openssl rand -base64 32`), enforce minimum 16+ character length with mixed case/numbers/symbols, and never reuse passwords across services. For production deployments, set strict file permissions (`chmod 600`) and migrate credentials to secure secret storage (HashiCorp Vault, AWS Secrets Manager, or encrypted credential vault) rather than plaintext .env files.
 
 ## Success Criteria
 - [ ] .env file created at /opt/n8n/.env

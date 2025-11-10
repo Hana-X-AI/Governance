@@ -269,29 +269,36 @@ else
   echo "❌ Ownership incorrect: $owner"
   exit 1
 fi
-
-# Actual output:
-# === Setting Ownership on /opt/n8n/app/ ===
-# Current owner: n8n:n8n
-# ✅ Ownership set on /opt/n8n/app/
-# (3 lines total)
-
-# Expected output per documentation (line 121):
-# === Setting Ownership on /opt/n8n/app/ ===
-# Files to update: 10000+  ← ❌ MISMATCH - this line doesn't appear
-# Current owner: n8n:n8n
-# ✅ Ownership set on /opt/n8n/app/
-# (4 lines shown, only 3 produced)
 ```
+
+**Actual output produced by command above**:
+```
+# (Note: Execute on hx-n8n-server.hx.dev.local as agent0 to verify)
+=== Setting Ownership on /opt/n8n/app/ ===
+Current owner: n8n:n8n
+✅ Ownership set on /opt/n8n/app/
+```
+*(3 lines total)*
+
+**Expected output per v1.0 documentation (line 121)**:
+```
+=== Setting Ownership on /opt/n8n/app/ ===
+Files to update: 10000+  ← ❌ MISMATCH - this line doesn't appear in actual output
+Current owner: n8n:n8n
+✅ Ownership set on /opt/n8n/app/
+```
+*(4 lines documented, only 3 actually produced)*
+
+**Mismatch Analysis**: Documentation line 121 references a file count (`Files to update: 10000+`) that was removed from the command in v1.1 but not removed from the expected output section.
 
 ---
 
 ### Post-Remediation Test (Demonstrates Fix)
 
-**After updating expected output**:
+**After updating expected output in documentation**:
 
 ```bash
-# Execute command
+# Execute command (same as pre-remediation)
 echo "=== Setting Ownership on /opt/n8n/app/ ==="
 sudo chown -R n8n:n8n /opt/n8n/app/
 owner=$(stat -c '%U:%G' /opt/n8n/app/)
@@ -299,16 +306,24 @@ echo "Current owner: $owner"
 if [ "$owner" = "n8n:n8n" ]; then
   echo "✅ Ownership set on /opt/n8n/app/"
 fi
+```
 
-# Actual output:
-# === Setting Ownership on /opt/n8n/app/ ===
-# Current owner: n8n:n8n
-# ✅ Ownership set on /opt/n8n/app/
+**Actual output produced by command**:
+```
+# (Note: Execute on hx-n8n-server.hx.dev.local as agent0 to verify)
+=== Setting Ownership on /opt/n8n/app/ ===
+Current owner: n8n:n8n
+✅ Ownership set on /opt/n8n/app/
+```
+*(3 lines total)*
 
-# Updated expected output (after fix):
-# === Setting Ownership on /opt/n8n/app/ ===
-# Current owner: n8n:n8n
-# ✅ Ownership set on /opt/n8n/app/
+**Updated expected output in v1.1 documentation (after remediation)**:
+```
+=== Setting Ownership on /opt/n8n/app/ ===
+Current owner: n8n:n8n
+✅ Ownership set on /opt/n8n/app/
+```
+*(3 lines - now matches actual output)*
 
 # Result: ✅ Perfect match
 ```
@@ -364,38 +379,24 @@ When modifying command/code sections:
 
 ---
 
-### Common Stale Content Patterns
+### Common Stale Content Patterns to Avoid
 
-**Pattern 1: Removed operation still in expected output** (THIS ISSUE):
-```bash
-# Command (removed operation)
-echo "Starting process"
-process_data  # (no count operation)
-echo "Complete"
+Quick reference for preventing stale documentation:
 
-# Expected output (stale - still shows count)
-Starting process
-Processing 1000 items  ← ❌ STALE - count operation removed
-Complete
-```
+| Pattern | Description | Example | Prevention |
+|---------|-------------|---------|-----------|
+| **Removed operation in output** (THIS ISSUE) | Operation code removed but expected output still references it | Command no longer counts files, but expected output shows `"Files to update: 10000+"` | Search document for all output references when removing code. Update expected output sections. |
+| **Changed error messages** | Error text updated in code but not in expected output documentation | Code changed from `"ERROR: Access denied"` to `"FAIL: Permission denied"`, docs still show old message | Global search for error message text when changing. Update all references including troubleshooting sections. |
+| **Renamed variables** | Variable refactored in code but old name remains in validation/documentation | Variable changed from `$exit_status` to `$result_code`, validation still checks old name | Use global search-replace for variable renames. Check validation commands, troubleshooting, and knowledge transfer sections. |
+| **Updated command syntax** | Command parameters changed but examples use old syntax | `chown` switched to `chmod`, docs still show ownership examples | Review all command examples when syntax changes. Test examples for validity. |
+| **Modified output format** | Output format changed (e.g., JSON to text) but parsers expect old format | Validation expects JSON output but command now returns plain text | Update parsers, validation scripts, and integration documentation when format changes. |
 
-**Pattern 2: Changed error messages not updated**:
-```bash
-# Code (new error message)
-echo "❌ FAIL: Permission denied"
-
-# Expected output (stale - old message)
-❌ ERROR: Access denied  ← ❌ STALE - message changed
-```
-
-**Pattern 3: Renamed variables in validation**:
-```bash
-# Command (renamed variable)
-result_code=$?
-
-# Validation (stale - old variable name)
-if [ $exit_status -eq 0 ]; then  ← ❌ STALE - variable renamed
-```
+**Actionable Prevention Checklist** (integrate into code review):
+1. ✅ When **removing code**: Search entire document for all references to removed functionality
+2. ✅ When **changing output**: Update expected output sections immediately after code change
+3. ✅ When **refactoring**: Use global search-replace for renamed identifiers
+4. ✅ When **modifying commands**: Test all documented examples for validity
+5. ✅ Before **committing**: Execute documented commands and verify output matches documentation
 
 ---
 

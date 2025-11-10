@@ -114,6 +114,8 @@ Layer 5: Application (needs everything below)
 Layer 6: Integration & Governance (observability)
 ```
 
+**Parallel Deployment Note**: Layers 2 (Model & Inference) and 3 (Data Plane) are independent of each other and can be deployed concurrently once Layer 1 is operational. Coordinate shared resources (e.g., compute infrastructure, network bandwidth) if both layers deploy simultaneously, and sequence appropriately if a Layer 4 service requires both to be ready before proceeding.
+
 ### Infrastructure Deployment Order
 
 **ALWAYS follow this sequence for new services:**

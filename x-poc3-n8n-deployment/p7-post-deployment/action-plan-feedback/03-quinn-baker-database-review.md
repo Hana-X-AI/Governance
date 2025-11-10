@@ -116,7 +116,8 @@ For POC3 remediation, PGPASSWORD is the right choice. For production deployments
 3. **Testing Recommendation**: After remediation, verify in non-interactive environment:
    ```bash
    # Test non-interactive execution (simulates CI/CD)
-   bash -c 'export PGPASSWORD=$(grep "^DB_POSTGRESDB_PASSWORD=" /opt/n8n/.env | cut -d'=' -f2); psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT 1;" -t -A'
+   export PGPASSWORD=$(grep "^DB_POSTGRESDB_PASSWORD=" /opt/n8n/.env | cut -d= -f2)
+   psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT 1;" -t -A
    # Expected output: 1
    # No password prompt should appear
    ```

@@ -90,7 +90,7 @@ cat > /srv/cc/Governance/x-poc3-n8n-deployment/p1-planning/ROGER-WORKFLOW-GUIDE.
 # AFTER:
 2. **✅ CodeRabbit CLI availability VERIFIED** (installation: curl -fsSL https://cli.coderabbit.ai/install.sh | sh)
 3. **✅ Documentation COMPLETE** (FORMATTED versions of 0.1.4d, 0.1.4e, 0.1.7 created)
-4. **✅ API Key AVAILABLE** (key stored in 0.0-Reasearch/api-key.md)
+4. **✅ API Key AVAILABLE** (key stored in 0.0-Research/api-key.md)
 ```
 
 **Next Steps Section**:
@@ -166,14 +166,14 @@ cat > /srv/cc/Governance/x-poc3-n8n-deployment/p1-planning/ROGER-WORKFLOW-GUIDE.
 
 ### CodeRabbit CLI Installation ✅
 
-**Verification Source**: /srv/cc/Governance/x-poc4-coderabbit/0.0-Reasearch/coderabbit-cli.md
+**Verification Source**: /srv/cc/Governance/x-poc4-coderabbit/0.0-Research/coderabbit-cli.md
 
 **Installation Command**:
 curl -fsSL https://cli.coderabbit.ai/install.sh | sh
 
 **Status**: ✅ **VERIFIED** - Installation script available and tested
 
-**API Key**: ✅ **AVAILABLE** in 0.0-Reasearch/api-key.md
+**API Key**: ✅ **AVAILABLE** in 0.0-Research/api-key.md
 export CODERABBIT_API_KEY="cr-fe13e8590657e79c8ba231c3591afcd97b61e4395e79b0adf34aa1eb7c"
 
 **Configuration**:
@@ -248,8 +248,8 @@ coderabbit --version
 ### Files Referenced (No Changes):
 1. **0.1.4d-architecture-commands-FORMATTED.md** (existing, 20KB)
 2. **0.1.4e-architecture-exit-codes-FORMATTED.md** (existing, 11KB)
-3. **0.0-Reasearch/coderabbit-cli.md** (verification source)
-4. **0.0-Reasearch/api-key.md** (verification source)
+3. **0.0-Research/coderabbit-cli.md** (verification source)
+4. **0.0-Research/api-key.md** (verification source)
 
 ---
 

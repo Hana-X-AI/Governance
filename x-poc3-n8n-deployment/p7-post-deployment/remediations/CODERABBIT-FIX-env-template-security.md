@@ -427,7 +427,7 @@ NEW_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | cut -c1-32)
 # 2. Update PostgreSQL database
 export PGPASSWORD="$(grep -m1 'postgres:' /srv/cc/Governance/0.2-credentials/hx-credentials.md | cut -d':' -f2 | xargs)"
 psql -h hx-postgres-server.hx.dev.local -U postgres -d postgres -c \
-  "ALTER USER svc-n8n WITH PASSWORD '$NEW_PASSWORD';"
+  "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
 unset PGPASSWORD
 
 # 3. Update .env file

@@ -152,9 +152,9 @@ nginx                   # ✅ Already installed on hx-cc-server
 curl -fsSL https://cli.coderabbit.ai/install.sh | sh
 ```
 
-**Status**: ✅ **VERIFIED** - Installation script exists (confirmed in `0.0-Reasearch/coderabbit-cli.md`)
+**Status**: ✅ **VERIFIED** - Installation script exists (confirmed in `0.0-Research/coderabbit-cli.md`)
 
-**API Key**: ✅ **AVAILABLE** - Key stored in `0.0-Reasearch/api-key.md`
+**API Key**: ✅ **AVAILABLE** - Key stored in `0.0-Research/api-key.md`
 
 **System Integration**:
 ```bash
@@ -607,23 +607,37 @@ fi
 
 **Recommended Approach**:
 ```bash
-# Install infrastructure packages system-wide
-sudo pip install --break-system-packages PyYAML pydantic fastapi pytest
+# Option 1: Use pipx for global CLI tools (RECOMMENDED)
+# Install pipx first (isolated environment for each tool)
+sudo apt install -y pipx
+pipx ensurepath
 
-# BUT: Use virtual environments for project-specific packages
+# Install CLI tools with pipx (each gets its own isolated environment)
+pipx install pytest
+pipx install black
+pipx install pylint
+pipx install mypy
+pipx install bandit
+
+# Option 2: Use project virtual environments (RECOMMENDED for libraries)
 cd /srv/cc/Governance/my-project
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt  # Project-specific versions
+pip install -r requirements.txt  # Project-specific versions (PyYAML, pydantic, fastapi, etc.)
+deactivate
+
+# AVOID: Never use sudo pip or --break-system-packages
+# ❌ sudo pip install --break-system-packages PyYAML  # BAD: Breaks system Python
 ```
 
 **Benefits**:
-- ✅ Infrastructure tools available globally
-- ✅ Projects isolated from each other
-- ✅ No version conflicts
-- ✅ Standard Python best practice
+- ✅ CLI tools isolated with pipx (no version conflicts)
+- ✅ Projects isolated with venv (reproducible environments)
+- ✅ System Python remains untouched (no --break-system-packages)
+- ✅ Standard Python best practice (PEP 668 compliant)
+- ✅ Easy to manage/update individual tools
 
-**Recommendation**: ✅ **Document venv usage in deployment guide**. Use system-wide installation only for infrastructure tools.
+**Recommendation**: ✅ **Use pipx for CLI tools, venv for projects**. Never modify system Python with sudo pip or --break-system-packages.
 
 ---
 
@@ -1166,8 +1180,24 @@ Based on comprehensive infrastructure review:
 - [ ] Install Python dependencies
   ```bash
   sudo apt update
-  sudo apt install -y python3.12 python3.12-venv python3-pip build-essential
-  sudo pip install --break-system-packages PyYAML pydantic fastapi pytest pytest-cov black pylint mypy bandit rich
+  sudo apt install -y python3.12 python3.12-venv python3-pip build-essential pipx
+  
+  # Ensure pipx is on PATH
+  pipx ensurepath
+  
+  # Install CLI tools with pipx (isolated, no conflicts)
+  pipx install pytest
+  pipx install black
+  pipx install pylint
+  pipx install mypy
+  pipx install bandit
+  
+  # For project-specific libraries, create a virtualenv
+  cd /srv/cc/hana-x-infrastructure
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install PyYAML pydantic fastapi pytest-cov rich
+  # Note: Keep virtualenv activated for deployment tasks below
   ```
 
 - [ ] Install Node.js dependencies

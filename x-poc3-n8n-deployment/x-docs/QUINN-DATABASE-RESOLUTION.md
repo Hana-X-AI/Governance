@@ -150,7 +150,7 @@ DB_POSTGRESDB_PASSWORD=Major8859!
 
 2. **Try Alternative Password (Temporary Test)**
    - Change password to something without special characters (e.g., `Major8859X`)
-   - Update in PostgreSQL: `ALTER ROLE svc-postgres WITH PASSWORD 'Major8859X';`
+   - Update in PostgreSQL: `ALTER ROLE "svc-postgres" WITH PASSWORD 'Major8859X';`
    - Update in `.env`: `DB_POSTGRESDB_PASSWORD=Major8859X`
    - Test if N8N starts successfully
    - **Purpose**: Determine if exclamation mark is the issue

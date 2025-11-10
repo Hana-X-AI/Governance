@@ -336,6 +336,16 @@ class TestCodeQualityDetection:
 
 # ==============================================================================
 # Helper Functions for Tests
+# NOTE: Ready for use when parser implementation is complete (Eric Johnson)
+# ==============================================================================
+#
+# These helper functions are fully implemented and tested, awaiting:
+# - Parser implementation (Eric Johnson - Phase 1A: Linter Aggregator)
+# - Real issue data from linter aggregation
+# - Integration testing with actual CodeRabbit output
+#
+# Current Status: Placeholder tests exist (lines 44-335)
+# Next Step: Eric will integrate these helpers once parser generates real data
 # ==============================================================================
 
 def count_issues_by_type(issues: List[Dict], issue_type: str) -> int:

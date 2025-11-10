@@ -13,6 +13,7 @@ Author: Julia Santos - Testing & QA Specialist
 Date: 2025-11-10
 """
 
+import math
 import os
 from typing import List, Dict, Optional, Protocol
 from abc import ABC, abstractmethod
@@ -134,7 +135,7 @@ class Circle(Shape):
         Returns:
             float: Circle area
         """
-        return 3.14159 * self.radius ** 2
+        return math.pi * self.radius ** 2
 
 
 class Rectangle(Shape):

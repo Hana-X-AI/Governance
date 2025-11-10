@@ -260,6 +260,30 @@ Marks task as FAIL
 Troubleshoots API endpoint issue BEFORE proceeding
 ```
 
+**How to Check Browser Console** (for inexperienced users):
+
+1. **Open Console**:
+   - Windows/Linux: Press `F12` or `Ctrl+Shift+I`
+   - macOS: Press `Cmd+Option+I`
+   - Or right-click page → "Inspect" → click "Console" tab
+
+2. **What to Look For**:
+   - **Errors** (red text with ❌): Blocking issues, must fix
+   - **Warnings** (orange text with ⚠️): Non-critical but review
+   - **Info** (blue text with ℹ️): Informational, usually safe to ignore
+
+3. **Common Error Patterns**:
+   - `Failed to load resource:` - Missing files or network issues
+   - `TypeError:` - JavaScript coding errors
+   - `SyntaxError:` - Malformed JavaScript code
+   - `ERR_CONNECTION_REFUSED` - Service not running
+   - `401 Unauthorized` / `403 Forbidden` - Authentication issues
+   - `500 Internal Server Error` - Backend application error
+
+4. **Pass/Fail Decision**:
+   - **PASS**: No red errors (warnings okay if minor)
+   - **FAIL**: Any red errors present
+
 **Impact**: Catches silent failures that would cause cryptic issues later.
 
 ---

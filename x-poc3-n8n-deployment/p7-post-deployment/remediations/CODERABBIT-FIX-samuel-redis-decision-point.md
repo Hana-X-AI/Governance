@@ -412,6 +412,81 @@ Orchestrator unclear: "Should I use Redis to prepare for Phase 2?"
 
 ---
 
+## Quick-Reference Decision Tree
+
+**Use this flow to reach a decision in under 2 minutes, then jump to detailed scenarios below:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  START: Should Redis session storage be configured for POC3?           │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │
+                                 ▼
+        ┌────────────────────────────────────────────────────┐
+        │  Is POC3 single-server only with simple scope?     │
+        │  (No Phase 2 Redis goals, multi-server not         │
+        │   imminent, want fastest deployment)               │
+        └─────────────┬──────────────────────┬───────────────┘
+                      │                      │
+                  YES │                      │ NO
+                      ▼                      ▼
+        ┌─────────────────────────┐  ┌──────────────────────────────────┐
+        │  OPTION A: No Redis     │  │  Check Phase 2 conditions:       │
+        │  ✅ Cookie-based        │  │  • Phase 2 goals include Redis?  │
+        │     sessions            │  │  • Multi-server imminent         │
+        │  ✅ Simpler setup       │  │    (2-4 weeks)?                  │
+        │  ✅ Faster (save 20min) │  │  • Want operational practice?    │
+        │  ✅ POC3 scope aligned  │  │  • Extra 20min acceptable?       │
+        └────────────┬────────────┘  └───────────┬──────────────────────┘
+                     │                           │
+                     │                   ┌───────┴──────┐
+                     │                   │              │
+                     │               ANY │              │ NONE
+                     │               YES │              │ (ALL NO)
+                     │                   ▼              │
+                     │           ┌───────────────────┐  │
+                     │           │  OPTION B: Redis  │  │
+                     │           │  ✅ Validates     │  │
+                     │           │     Phase 2       │  │
+                     │           │  ✅ Practice      │  │
+                     │           │     multi-server  │  │
+                     │           │  ✅ Tests session │  │
+                     │           │     persistence   │  │
+                     │           │  ⚠️  +20min setup │  │
+                     │           └──────┬────────────┘  │
+                     │                  │               │
+                     └──────────────────┴───────────────┘
+                                        │
+                                        ▼
+                     ┌──────────────────────────────────────┐
+                     │  Document decision using template    │
+                     │  (See Scenario 1 or 2 below)         │
+                     └──────────────────────────────────────┘
+                                        │
+                                        ▼
+                     ┌──────────────────────────────────────┐
+                     │  Proceed with deployment:            │
+                     │  • Option A → Skip Redis .env lines  │
+                     │    481-487 in specification          │
+                     │  • Option B → Configure Redis lines  │
+                     │    481-487 + setup Redis container   │
+                     └──────────────────────────────────────┘
+
+Legend:
+  ┌─┐  Decision Point / Action
+  ▼    Flow Direction
+  ✅   Benefit / Recommended for this path
+  ⚠️   Trade-off / Extra effort
+```
+
+**Decision Time**: 1-2 minutes using this tree
+
+**Next Steps**:
+- **Chose Option A?** → See [Scenario 1: Standard POC3 Deployment](#scenario-1-standard-poc3-deployment-option-a) for detailed workflow
+- **Chose Option B?** → See [Scenario 2: Phase 2 Preparation Deployment](#scenario-2-phase-2-preparation-deployment-option-b) for detailed workflow
+
+---
+
 ## Example Decision Workflows
 
 ### Scenario 1: Standard POC3 Deployment (Option A)

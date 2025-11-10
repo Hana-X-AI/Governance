@@ -20,15 +20,23 @@
 
 **Line 24** (Create DNS A record):
 ```bash
+# ❌ INSECURE - Hardcoded password in plaintext
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
-  -U administrator --password='Major3059!'
+  -U administrator --password='[REDACTED-████████]'
 ```
 
 **Line 28** (Verify DNS record):
 ```bash
+# ❌ INSECURE - Hardcoded password in plaintext
 samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
-  -U administrator --password='Major3059!'
+  -U administrator --password='[REDACTED-████████]'
 ```
+
+**⚠️ CRITICAL SECURITY NOTICE**:
+- **Password Exposed in Version Control**: The hardcoded password `Major3059!` was committed to git history
+- **Immediate Action Required**: Rotate this credential immediately (see Security Hardening section)
+- **Version Control Cleanup**: Remove password from git history using `git filter-repo` or BFG Repo-Cleaner
+- **Password Displayed Above**: Redacted for security; original plaintext password must be rotated
 
 **Security Impact**:
 1. **Plaintext Credential Exposure**: Administrator password visible in version control
@@ -82,21 +90,24 @@ samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
 
 **Lines 24-28 - Change from**:
 ```bash
+# ❌ INSECURE - DO NOT USE
 # Create DNS A record
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
-  -U administrator --password='Major3059!'
+  -U administrator --password='[REDACTED]'
 
 # Verify
 samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
-  -U administrator --password='Major3059!'
+  -U administrator --password='[REDACTED]'
 ```
 
 **To** (Option 1: Interactive prompt - RECOMMENDED for tasks):
 ```bash
+# ✅ SECURE - Interactive password prompt
 # Create DNS A record (will prompt for password)
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
   -U administrator
 # Password prompt: Enter administrator password when prompted
+# Retrieve password from: /srv/cc/Governance/0.2-credentials/hx-credentials.md (administrator:)
 
 # Verify (will prompt for password)
 samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
@@ -105,46 +116,51 @@ samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
 ```
 
 **Rationale**:
-- samba-tool prompts for password if --password omitted
-- No credentials stored in files
-- Requires manual execution (acceptable for one-time infrastructure task)
-- Best practice for interactive task execution
+- ✅ samba-tool prompts for password if --password omitted (secure by default)
+- ✅ No credentials stored in files or command history
+- ✅ Requires manual execution (acceptable for one-time infrastructure task)
+- ✅ Best practice for interactive task execution
+- ✅ Password retrieved from secure credential vault only when needed
 
 ---
 
 ### Part 2: Alternative - Environment Variable Reference
 
-**To** (Option 2: Environment variable):
+**To** (Option 2: Environment variable - for automation):
 ```bash
-# Set password from credential vault (do NOT commit this command with literal password)
+# ✅ SECURE - Load password from credential vault (reference only, no literal password)
+# Alternative: Use AWS SSM: export SAMBA_PASSWORD=$(aws ssm get-parameter --name /hana-x/samba/admin-password --with-decryption --query Parameter.Value --output text)
+# Alternative: Use HashiCorp Vault: export SAMBA_PASSWORD=$(vault kv get -field=password secret/samba/administrator)
 export SAMBA_PASSWORD=$(grep "administrator:" /srv/cc/Governance/0.2-credentials/hx-credentials.md | cut -d':' -f2 | xargs)
 
-# Create DNS A record
+# Create DNS A record (password from environment variable)
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
   -U administrator --password="$SAMBA_PASSWORD"
 
-# Verify
+# Verify (password from environment variable)
 samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
   -U administrator --password="$SAMBA_PASSWORD"
 
-# Unset password from environment
+# ✅ CRITICAL - Unset password from environment to prevent leakage
 unset SAMBA_PASSWORD
 ```
 
 **Rationale**:
-- Password loaded from secure credential vault
-- Not stored in task file (only reference to vault)
-- Unset after use (prevents environment variable leakage)
-- Allows for automation/scripting
+- ✅ Password loaded from secure credential vault (local file, AWS SSM, or HashiCorp Vault)
+- ✅ Not stored in task file (only reference to vault)
+- ✅ Unset after use (prevents environment variable leakage)
+- ✅ Allows for automation/scripting while maintaining security
+- ✅ Supports multiple secret management backends
 
 ---
 
 ### Part 3: Alternative - Documentation Placeholder
 
-**To** (Option 3: Documentation placeholder):
+**To** (Option 3: Documentation placeholder - for runbooks):
 ```bash
-# NOTE: Replace ${SAMBA_ADMIN_PASSWORD} with actual password from credential vault
-# Location: /srv/cc/Governance/0.2-credentials/hx-credentials.md (administrator:)
+# ⚠️ NOTE: Replace ${SAMBA_ADMIN_PASSWORD} with actual password from credential vault
+# Credential source: /srv/cc/Governance/0.2-credentials/hx-credentials.md (administrator:)
+# Alternative sources: AWS SSM Parameter Store, HashiCorp Vault, Azure Key Vault
 
 # Create DNS A record
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
@@ -156,10 +172,10 @@ samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
 ```
 
 **Rationale**:
-- Clear indication that placeholder needs replacement
-- Documents credential source (vault location)
-- Prevents accidental execution with placeholder
-- Best for documentation/runbook purposes
+- ✅ Clear indication that placeholder needs replacement (prevents accidental execution)
+- ✅ Documents credential source (vault location)
+- ✅ Prevents accidental execution with placeholder (command will fail safely)
+- ✅ Best for documentation/runbook purposes where copy-paste is expected
 
 ---
 
@@ -284,7 +300,7 @@ samba-tool dns query 192.168.10.200 hx.dev.local n8n A \
 
 ### 1. Immediate Credential Rotation (CRITICAL)
 
-**Administrator password exposed - rotate immediately**:
+**Administrator password exposed in version control - rotate immediately**:
 
 ```bash
 # Connect to Samba AD DC
@@ -310,7 +326,97 @@ samba-tool user show administrator
 
 ---
 
-### 2. Audit Samba AD Logs for Unauthorized Access
+### 2. Remove Credential from Git History (CRITICAL)
+
+**⚠️ IMPORTANT**: Simply removing the password from the current file does NOT remove it from git history. All previous commits still contain the plaintext password.
+
+**Option A: BFG Repo-Cleaner (Recommended - Fast and Safe)**:
+```bash
+# Install BFG Repo-Cleaner
+wget https://repo1.maven.org/maven2/com/madgag/bfg/1.14.0/bfg-1.14.0.jar -O bfg.jar
+
+# Create a fresh clone with full history
+git clone --mirror git@github.com:Hana-X-AI/Governance.git governance-cleanup.git
+
+# Remove password from all commits
+java -jar bfg.jar --replace-text <(echo "Major3059!==[REDACTED]") governance-cleanup.git
+
+# Clean up and push changes
+cd governance-cleanup.git
+git reflog expire --expire=now --all && git gc --prune=now --aggressive
+git push --force
+
+# Verify password removed from history
+cd ..
+git clone git@github.com:Hana-X-AI/Governance.git governance-verify
+cd governance-verify
+git log --all --oneline | head -20
+git grep "Major3059" $(git rev-list --all) # Should return nothing
+```
+
+**Option B: git-filter-repo (Alternative)**:
+```bash
+# Install git-filter-repo
+pip3 install git-filter-repo
+
+# Clone repository
+git clone git@github.com:Hana-X-AI/Governance.git governance-cleanup
+cd governance-cleanup
+
+# Create expressions file to replace password
+cat > password-replace.txt <<'EOF'
+Major3059!==>[REDACTED-ROTATED]
+EOF
+
+# Filter all branches and tags
+git filter-repo --replace-text password-replace.txt
+
+# Force push (requires admin privileges)
+git push --force --all
+git push --force --tags
+```
+
+**Post-Cleanup Actions**:
+```bash
+# All team members must re-clone (old clones contain password in history)
+# Send notification to team:
+cat > /tmp/security-notice.txt <<'EOF'
+🔒 SECURITY NOTICE: Git Repository Re-clone Required
+
+The Governance repository contained a hardcoded Samba administrator password
+in commit history. The password has been rotated and git history has been
+rewritten to remove the credential.
+
+ACTION REQUIRED:
+1. Delete your existing local clone: rm -rf /path/to/Governance
+2. Re-clone fresh copy: git clone git@github.com:Hana-X-AI/Governance.git
+3. Do NOT push from old clones (will re-introduce password to history)
+
+Timeline:
+- Password rotated: [TIMESTAMP]
+- Git history cleaned: [TIMESTAMP]
+- Re-clone deadline: Within 24 hours
+
+Questions: Contact Security Team
+EOF
+
+# Send to team Slack channel #infra-alerts
+```
+
+**Verification**:
+```bash
+# Verify password no longer in any commit
+git clone git@github.com:Hana-X-AI/Governance.git verify-clean
+cd verify-clean
+git log --all --source --full-history -S "Major3059" # Should return nothing
+git grep "Major3059" $(git rev-list --all) # Should return nothing
+```
+
+**WARNING**: Force-pushing rewrites history and requires all team members to re-clone. Coordinate this during maintenance window.
+
+---
+
+### 3. Audit Samba AD Logs for Unauthorized Access
 
 **Check for potential unauthorized administrative actions**:
 
@@ -340,7 +446,7 @@ sudo samba-tool user list | sort
 
 ---
 
-### 3. Implement Kerberos Authentication (Future Enhancement)
+### 4. Implement Kerberos Authentication (Future Enhancement)
 
 **Replace password authentication with Kerberos tickets**:
 
@@ -372,7 +478,7 @@ kdestroy
 
 ---
 
-### 4. Pre-Commit Hook Enhancement
+### 5. Pre-Commit Hook Enhancement
 
 **Add Samba password detection to pre-commit hook**:
 
@@ -408,7 +514,7 @@ exit 0
 
 ---
 
-### 5. Credential Vault Security
+### 6. Credential Vault Security
 
 **Harden credential vault access**:
 
@@ -572,25 +678,33 @@ samba-tool dns add ... --password='Major3059!'  # ❌ NEVER DO THIS
 
 **Method 1: Interactive Prompt (RECOMMENDED)**:
 ```bash
-# Remove --password flag entirely
+# ✅ Remove --password flag entirely - samba-tool will prompt securely
 samba-tool dns add 192.168.10.200 hx.dev.local n8n A 192.168.10.215 \
   -U administrator
+# Password: (interactive prompt - retrieve from credential vault)
 ```
 
-**Method 2: Environment Variable Reference**:
+**Method 2: Environment Variable Reference (for automation)**:
 ```bash
-export SAMBA_PASSWORD=$(grep "administrator:" /srv/cc/Governance/0.2-credentials/hx-credentials.md | cut -d':' -f2 | xargs)
+# ✅ Load from secure vault (AWS SSM, HashiCorp Vault, or local credential file)
+export SAMBA_PASSWORD=$(aws ssm get-parameter --name /hana-x/samba/admin-password --with-decryption --query Parameter.Value --output text)
+# OR: export SAMBA_PASSWORD=$(vault kv get -field=password secret/samba/administrator)
+# OR: export SAMBA_PASSWORD=$(grep "administrator:" /srv/cc/Governance/0.2-credentials/hx-credentials.md | cut -d':' -f2 | xargs)
+
 samba-tool dns add ... --password="$SAMBA_PASSWORD"
-unset SAMBA_PASSWORD
+unset SAMBA_PASSWORD  # ✅ Critical: Clean up after use
 ```
 
-### Security Actions
+### Security Actions (CRITICAL PRIORITY)
 
-1. **Rotate administrator password IMMEDIATELY**
-2. **Audit Samba AD logs for unauthorized access**
-3. **Update pre-commit hook to block Samba passwords**
-4. **Document credential management in task**
-5. **Review all infrastructure tasks for similar exposure**
+1. **Rotate administrator password IMMEDIATELY** (within 1 hour)
+2. **Remove password from git history** (BFG Repo-Cleaner or git-filter-repo)
+   - Force-push cleaned history
+   - Require all team members to re-clone repository
+3. **Audit Samba AD logs for unauthorized access** (check last 7 days)
+4. **Update pre-commit hook to block Samba passwords**
+5. **Document credential management in task** (interactive prompt or vault reference)
+6. **Review all infrastructure tasks for similar exposure**
 
 ---
 
@@ -612,10 +726,13 @@ After applying all fixes:
 - [ ] Security notes added
 
 ### Security Controls
-- [ ] Pre-commit hook updated (blocks Major3059)
+- [ ] Pre-commit hook updated (blocks Major3059 and --password patterns)
 - [ ] Credential vault permissions verified (600, root:root)
-- [ ] Samba AD logs audited for unauthorized access
-- [ ] Git history cleaned (remove plaintext password from commits)
+- [ ] Samba AD logs audited for unauthorized access (last 7 days)
+- [ ] **Git history cleaned** (use BFG Repo-Cleaner or git-filter-repo)
+- [ ] **Verify password not in history**: `git grep "Major3059" $(git rev-list --all)` returns nothing
+- [ ] **All team members notified to re-clone** repository (old clones contain password)
+- [ ] Administrator password rotated (new password stored in credential vault only)
 
 ---
 

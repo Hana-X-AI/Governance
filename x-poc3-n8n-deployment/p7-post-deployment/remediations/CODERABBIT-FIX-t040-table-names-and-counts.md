@@ -7,6 +7,18 @@
 
 ---
 
+## Purpose
+
+**Document Type**: Actionable remediation with immediate validation fixes required before production deployment.
+
+**Intended Audience**: DevOps/SRE engineers and database administrators responsible for POC3 N8N deployment verification.
+
+**Timeline/Urgency**: Apply immediately during next deployment window or pre-production validation cycle to prevent false-negative test failures; fixes must be implemented before final production sign-off on T-040 verification task.
+
+**Execution Owner**: Infrastructure Lead (William Taylor) or assigned DevOps engineer should update the validation script referenced in T-040 task document with corrected table names and expected counts.
+
+---
+
 ## Issue #1: Incorrect Table Name in key_tables Array
 
 **Location**: Line 84
@@ -487,6 +499,73 @@ fi
 - Any task that references table names
 - Any validation script that counts tables
 - Any SQL query examples in documentation
+
+---
+
+## Update Tracking Checklist
+
+**Purpose**: Ensure all cross-referenced documentation is updated with corrected table names (_entity suffixes) and adjusted table count threshold (24 tables minimum).
+
+### Files Requiring Updates
+
+| Status | File | Required Changes | Owner | Target Date |
+|--------|------|------------------|-------|-------------|
+| ⬜ | `p3-tasks/p3.3-deploy/t-043-verify-database-connection.md` | • Verify SQL examples use `workflow_entity`, `execution_entity`, `credentials_entity`, `user_entity`<br>• Update any table count assertions to reflect 24-table baseline<br>• Add TypeORM entity naming convention note if missing | Quinn Baker | 2025-11-13 |
+| ⬜ | `p3-tasks/p3.3-deploy/QUINN-REVIEW.md` | • Update table validation references to use `_entity` suffixes<br>• Adjust expected table count from legacy values to 24 tables<br>• Cross-reference this remediation document | Quinn Baker | 2025-11-13 |
+| ⬜ | `p2-specification/review-quinn-database.md` | • Update database schema requirements with correct TypeORM table names<br>• Update table count expectations (24 tables for n8n v1.118.2)<br>• Add note about TypeORM entity naming conventions | Quinn Baker | 2025-11-13 |
+
+### Verification Checklist
+
+- [ ] **SQL Examples Verified**: All SQL queries in cross-referenced documents use `_entity` suffix pattern
+  - Owner: Quinn Baker
+  - Target: 2025-11-13
+  - Verification: Search for `FROM workflow`, `FROM execution`, `FROM credentials`, `FROM user` and replace with `_entity` versions
+
+- [ ] **Table Count Threshold Updated**: All references to expected table counts updated to 24 (or 20 minimum functional)
+  - Owner: Quinn Baker
+  - Target: 2025-11-13
+  - Verification: Search for hardcoded values like `10`, `15`, or similar legacy counts and update to `24`
+
+- [ ] **TypeORM Convention Documented**: Each affected file includes note about TypeORM `@Entity('entity_name')` → `entity_name_entity` naming pattern
+  - Owner: Quinn Baker
+  - Target: 2025-11-13
+  - Verification: Grep for "TypeORM" or "Entity" references in updated files
+
+- [ ] **Cross-Reference Links Added**: All updated documents link back to this remediation for context
+  - Owner: Quinn Baker
+  - Target: 2025-11-13
+  - Verification: Each file includes reference to `CODERABBIT-FIX-t040-table-names-and-counts.md`
+
+### Follow-Up Action Item
+
+**Tracking Ticket**: Create follow-up issue/ticket to track completion across all affected files
+
+- **Ticket ID**: `[INFRA-TBD]` or `[POC3-DBSCHEMA-001]` *(to be created)*
+- **Title**: "Update POC3 Documentation: Correct n8n TypeORM Table Names and Count Thresholds"
+- **Assigned To**: Quinn Baker (Database Administrator)
+- **Priority**: P1 (High - Required before production validation sign-off)
+- **Due Date**: 2025-11-13 EOD
+- **Description Template**:
+  ```
+  Update all POC3 database-related documentation to reflect:
+  1. Correct TypeORM table names with _entity suffixes
+  2. Updated table count threshold (24 tables for n8n v1.118.2)
+  3. TypeORM entity naming convention notes
+  
+  Affected files:
+  - p3-tasks/p3.3-deploy/t-043-verify-database-connection.md
+  - p3-tasks/p3.3-deploy/QUINN-REVIEW.md
+  - p2-specification/review-quinn-database.md
+  
+  Reference: p7-post-deployment/remediations/CODERABBIT-FIX-t040-table-names-and-counts.md
+  ```
+- **Acceptance Criteria**:
+  - All SQL examples use correct `_entity` suffix pattern
+  - All table count references updated to 24-table baseline
+  - All files cross-reference this remediation document
+  - T-040 validation script updated and tested successfully
+
+**Action Owner**: Infrastructure Lead (William Taylor) to create ticket and assign to Quinn Baker by 2025-11-11 EOD
 
 ---
 

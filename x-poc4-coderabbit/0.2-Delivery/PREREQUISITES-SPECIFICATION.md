@@ -3,7 +3,7 @@
 
 **Document Type**: Delivery - Prerequisites Specification
 **Created**: 2025-11-10
-**Updated**: 2025-11-10 (v2.1 - Global Installation Requirements)
+**Updated**: 2025-11-10 (v2.2 - Task Matrix Refinements)
 **Project**: POC4 CodeRabbit Integration - Path A (Linter Aggregator)
 **Status**: Pre-Implementation
 
@@ -11,6 +11,7 @@
 - v1.0: Initial specification
 - v2.0: Corrected to VERIFY-FIRST methodology
 - v2.1: Added global installation requirements for all projects
+- v2.2: Task matrix refinements per CodeRabbit review (clarified Task 7, added Task 22 for credential rotation)
 
 ---
 
@@ -643,6 +644,92 @@ coverage.json
 
 ---
 
+### Section 10: Post-Deployment Security (Phase 1 Complete)
+
+#### 10.1 Rotate CodeRabbit API Key (Task 22)
+**Owner**: Carlos Martinez
+**Status**: ⏳ POST-DEPLOYMENT (after Phase 1 implementation)
+**Priority**: P3 (Security hardening, not blocking)
+
+**Timing**: After Phase 1 linter aggregator implementation complete, before production rollout
+
+**Rationale**: The CodeRabbit API key used during development/testing should be rotated before production to:
+- Invalidate any accidentally exposed credentials during development
+- Ensure development environment credentials do not persist in production
+- Follow security best practice of credential rotation at deployment boundaries
+
+**Procedure**:
+
+**Step 1: Generate New API Key**
+```bash
+# Login to CodeRabbit platform (https://app.coderabbit.ai)
+# Navigate to: Settings → API Keys → Generate New Key
+# Save new key: cr-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+**Step 2: Update Configuration**
+```bash
+# On hx-cc-server, update Roger configuration
+cd /srv/cc/hana-x-infrastructure/.claude/agents/roger/
+
+# Update environment variable (if using .env file)
+sed -i 's/^CODERABBIT_API_KEY=.*/CODERABBIT_API_KEY=cr-NEW_KEY_HERE/' config/.env
+
+# OR update global environment (if set globally)
+export CODERABBIT_API_KEY="cr-NEW_KEY_HERE"
+# Add to /etc/environment or ~/.bashrc for persistence
+```
+
+**Step 3: Update Credentials Documentation**
+```bash
+# Update central credentials document
+vim /srv/cc/Governance/0.0-governance/0.0.5-Delivery/0.0.5.2-credentials/0.0.5.2.1-credentials.md
+# Replace old API key with new key in CodeRabbit section
+```
+
+**Step 4: Verify Functionality**
+```bash
+# Test CodeRabbit CLI with new key
+coderabbit --version
+coderabbit review --help
+
+# Test linter aggregator with new key
+cd /srv/cc/hana-x-infrastructure/.claude/agents/roger/
+python3 -m roger.linter_aggregator --test
+```
+
+**Step 5: Revoke Old API Key**
+```bash
+# Login to CodeRabbit platform
+# Navigate to: Settings → API Keys → [Old Key] → Revoke
+# Confirm revocation
+```
+
+**Step 6: Verify Old Key Revoked**
+```bash
+# Temporarily set old key to verify it no longer works
+export CODERABBIT_API_KEY="cr-OLD_KEY_HERE"
+coderabbit --version
+# Expected: Authentication error
+
+# Restore new key
+export CODERABBIT_API_KEY="cr-NEW_KEY_HERE"
+coderabbit --version
+# Expected: Success
+```
+
+**Deliverable**:
+- ✅ New API key generated and configured
+- ✅ Old API key revoked
+- ✅ Functionality verified with new key
+- ✅ Credentials documentation updated
+
+**Duration**: 15 minutes
+
+**Security Note**: This is a security hardening task, not a blocking prerequisite. If skipped, development API key remains functional but represents increased security risk.
+
+---
+
 ## Prerequisites Task Assignment Matrix
 
 | # | Task | Owner | Priority | Duration | Action |
@@ -653,7 +740,7 @@ coverage.json
 | 4 | Install missing linters (if needed) | William Taylor | P0 | 30 min | CONDITIONAL |
 | 5 | CHECK system dependencies | William Taylor | P0 | 10 min | CHECK |
 | 6 | Install missing dependencies (if needed) | William Taylor | P0 | 15 min | CONDITIONAL |
-| 7 | CHECK CodeRabbit CLI globally installed | Carlos Martinez | P1 | 5 min | CHECK |
+| 7 | CHECK CodeRabbit CLI globally installed (verify symlink at /usr/local/bin/coderabbit) | Carlos Martinez | P1 | 5 min | CHECK |
 | 8 | Install CodeRabbit CLI with global symlink (if needed) | Carlos Martinez | P1 | 15 min | CONDITIONAL |
 | 9 | Verify CodeRabbit global authentication | Carlos Martinez | P1 | 15 min | VERIFY |
 | 10 | Test CodeRabbit CLI from multiple directories | Carlos Martinez | P1 | 10 min | VALIDATE |
@@ -668,10 +755,32 @@ coverage.json
 | 19 | Verify Git repository config | Agent Zero | P2 | 10 min | VERIFY |
 | 20 | Verify user account permissions | William Taylor | P2 | 10 min | VERIFY |
 | 21 | Determine service account need | Frank Lucas | P3 | 15 min | DETERMINE |
+| 22 | Rotate CodeRabbit API key post-deployment (Phase 1 complete) | Carlos Martinez | P3 | 15 min | SECURITY |
 
 **Total Duration**: 2-4 hours (many tasks are verification only; installations are conditional)
 
 **Key Principle**: **VERIFY BEFORE ACTION** - Most tasks should complete quickly if infrastructure already exists
+
+### Task Matrix Refinement Notes
+
+**CodeRabbit Optimization Suggestions** (addressed in v2.2):
+
+1. **Tasks 1-2 Consolidation Analysis**:
+   - **Task 1**: "Verify Hana-X services operational" - Checks ecosystem-wide services (Redis, PostgreSQL, CodeRabbit MCP on other servers)
+   - **Task 2**: "Verify hx-cc-server environment" - Checks local server state (Python, disk space, permissions on 192.168.10.224)
+   - **Decision**: **NOT consolidated** - Different scopes (ecosystem vs local server) require separate verification steps
+   - **Rationale**: Task 1 can pass while Task 2 fails (e.g., Hana-X services operational but hx-cc-server disk full)
+
+2. **Task 7 Naming Clarification**:
+   - **Original**: "CHECK CodeRabbit CLI globally installed"
+   - **Updated**: "CHECK CodeRabbit CLI globally installed (verify symlink at /usr/local/bin/coderabbit)"
+   - **Clarification**: Task explicitly checks for symlink existence at global path, not just binary installation
+
+3. **Post-Deployment Credential Security** (NEW):
+   - **Added Task 22**: "Rotate CodeRabbit API key post-deployment" (Priority: P3, Owner: Carlos Martinez)
+   - **Timing**: After Phase 1 implementation complete, before production rollout
+   - **Scope**: Generate new API key, update configuration, revoke old key, verify functionality
+   - **Duration**: 15 minutes
 
 ---
 

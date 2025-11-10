@@ -52,12 +52,31 @@ EOF
 3. **Removed duplicate content**: Single heredoc block (removed lines 358-398 duplicate)
 4. **Added ownership command**: `sudo chown n8n:n8n` immediately after heredoc
 5. **Added explanatory comment**: Documents why unquoted EOF is used
+6. **Added privilege checks**: Validates write permissions and fails early with clear error
 
 **New Code Pattern** (lines 316-364):
+
+**Execution Context Required**: Run as root OR as user with passwordless sudo access to `/opt/n8n/` directory
+
 ```bash
 # Create comprehensive pre-build checklist with variable expansion
 # Note: Using unquoted EOF to allow $(date) and $(df) to expand
-cat > /opt/n8n/docs/pre-build-checklist.md << EOF
+
+# Ensure target directory exists with proper permissions
+if ! sudo mkdir -p /opt/n8n/docs 2>/dev/null; then
+  echo "❌ ERROR: Cannot create /opt/n8n/docs/ - elevated privileges required"
+  echo "   Run this script with sudo or as a user with passwordless sudo access"
+  exit 1
+fi
+
+# Verify write access to target directory
+if ! sudo test -w /opt/n8n/docs 2>/dev/null; then
+  echo "❌ ERROR: No write access to /opt/n8n/docs/ - check permissions"
+  exit 1
+fi
+
+# Create checklist file with sudo tee for unprivileged execution
+cat << EOF | sudo tee /opt/n8n/docs/pre-build-checklist.md > /dev/null
 # n8n Pre-Build Checklist
 **Server**: hx-n8n-server.hx.dev.local (192.168.10.215)
 **Date**: $(date)
@@ -75,7 +94,7 @@ cat > /opt/n8n/docs/pre-build-checklist.md << EOF
 **Status**: ✅ READY FOR BUILD
 EOF
 
-# Set ownership
+# Set ownership (uses sudo for unprivileged execution)
 sudo chown n8n:n8n /opt/n8n/docs/pre-build-checklist.md
 
 # Display checklist

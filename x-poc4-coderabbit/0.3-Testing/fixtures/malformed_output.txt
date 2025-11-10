@@ -1,3 +1,17 @@
+# TEST FIXTURE: Malformed CodeRabbit Output
+# Purpose: Verify parser correctly rejects invalid/incomplete output
+# Expected behavior: Parser should fail with clear error message
+
+# Structural issues in this fixture (why it should be rejected):
+# - Missing valid CodeRabbit header/metadata (no "CodeRabbit Review" or similar identifier)
+# - Missing file references (no "File:", "Path:", or file paths like "src/...")
+# - Missing priority indicators (no "P0", "P1", "P2" markers)
+# - Missing issue descriptions/findings (no structured issue blocks)
+# - Missing line numbers or location information
+# - No JSON structure if JSON output expected
+# - Random unstructured text instead of formatted review output
+
+# Actual malformed content below (unchanged for error testing):
 This is not valid CodeRabbit output
 Random text without proper structure
 No file references

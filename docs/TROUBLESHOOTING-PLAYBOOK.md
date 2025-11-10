@@ -60,22 +60,22 @@ Is it monitoring/CI/CD? → YES → Layer 6 (Integration & Governance)
 nslookup hx-postgres-server.hx.dev.local 192.168.10.200
 dig @192.168.10.200 hx-postgres-server.hx.dev.local
 
-# Check DNS server status
-ssh hx-freeipa-server "systemctl status named"
+# Check DNS server status (Samba AD DC integrated DNS)
+ssh hx-samba-ad-dc "systemctl status samba-ad-dc"
 ```
 
 **Resolution:**
 1. Invoke frank: "Diagnose DNS resolution for [hostname]"
 2. Frank checks:
-   - DNS service running on hx-freeipa-server
-   - A record exists in zone file
-   - Reverse DNS configured
+   - DNS service running on hx-samba-ad-dc (Samba AD DC)
+   - A record exists in AD-integrated zone
+   - Reverse DNS configured in AD
 3. Frank resolves and validates
 4. Re-test DNS resolution
 
 **Prevention:**
 - Ensure all new services register DNS via Frank
-- Monitor DNS service health (nathan)
+- Monitor Samba AD DC service health (nathan)
 
 ---
 
@@ -102,8 +102,8 @@ kinit postgres_service@HX.DEV.LOCAL
 **Resolution:**
 1. Invoke frank: "Diagnose Samba DC authentication for [service/user]"
 2. Frank checks:
-   - FreeIPA server operational
-   - Account exists and is not locked
+   - Samba AD DC operational
+   - Account exists in AD and is not locked
    - Password not expired
    - Kerberos tickets valid
 3. Frank resolves (reset password, unlock account, etc.)
@@ -111,7 +111,7 @@ kinit postgres_service@HX.DEV.LOCAL
 
 **Prevention:**
 - Regular password rotation with tracking
-- Monitor account lockout events
+- Monitor account lockout events in Samba AD DC
 - Automate service account management (amanda)
 
 ---
@@ -125,14 +125,56 @@ kinit postgres_service@HX.DEV.LOCAL
 - Certificate hostname mismatch
 
 **Diagnostic Commands:**
-```bash
-# Check certificate validity
-openssl s_client -connect hx-postgres-server.hx.dev.local:5432 -showcerts
 
-# Check certificate expiration
-echo | openssl s_client -servername hx-postgres-server.hx.dev.local \
-  -connect hx-postgres-server.hx.dev.local:443 2>/dev/null | \
+**For PostgreSQL SSL Verification (Port 5432):**
+```bash
+# Verify PostgreSQL TLS/SSL connection using psql
+# This shows actual SSL negotiation status from PostgreSQL's perspective
+PGSSLMODE=require psql -h hx-postgres-server.hx.dev.local -U postgres -d postgres -c '\conninfo'
+
+# Expected output should include:
+#   SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits: 256, compression: off)
+# Or similar SSL details confirming encrypted connection
+
+# Alternative: Test SSL requirement enforcement
+PGSSLMODE=require psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT version();"
+# If SSL is properly configured, connection succeeds
+# If SSL fails, you'll see: "FATAL: no pg_hba.conf entry for host ... SSL off"
+
+# Verify SSL is enforced (connection should fail without SSL)
+PGSSLMODE=disable psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT 1;"
+# Expected: Connection failure if SSL is required
+
+# Check PostgreSQL server SSL configuration
+ssh hx-postgres-server.hx.dev.local "sudo -u postgres psql -c 'SHOW ssl;'"
+# Expected: ssl = on
+```
+
+**For HTTPS/Web Services Certificate Verification (Port 443):**
+```bash
+# Check HTTPS certificate validity
+openssl s_client -connect n8n.hx.dev.local:443 -servername n8n.hx.dev.local -showcerts
+
+# Check certificate expiration for web services
+echo | openssl s_client -servername n8n.hx.dev.local \
+  -connect n8n.hx.dev.local:443 2>/dev/null | \
   openssl x509 -noout -dates
+
+# Check subject and issuer
+echo | openssl s_client -servername n8n.hx.dev.local \
+  -connect n8n.hx.dev.local:443 2>/dev/null | \
+  openssl x509 -noout -subject -issuer
+```
+
+**For PostgreSQL Certificate Expiration (Separate Check):**
+```bash
+# Check PostgreSQL server certificate file directly
+ssh hx-postgres-server.hx.dev.local \
+  "sudo openssl x509 -in /var/lib/postgresql/server.crt -noout -dates"
+
+# Check PostgreSQL certificate details
+ssh hx-postgres-server.hx.dev.local \
+  "sudo openssl x509 -in /var/lib/postgresql/server.crt -noout -subject -issuer -dates"
 ```
 
 **Resolution:**

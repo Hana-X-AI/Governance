@@ -326,7 +326,9 @@ When using `coderabbit-json` in scripts or CI/CD:
 | 6 | Missing `coderabbit-json` command | 0.1.7 | ℹ️ Nice to Have | 5 min | LOW |
 | 7 | Missing exit code explanation | 0.1.7 | ℹ️ Nice to Have | 3 min | LOW |
 
-**Total Effort**: ~30 minutes for all adjustments
+**Total Effort**: Approximately 32 minutes for all adjustments (5+10+2+5+2+5+3)
+
+**Prioritization Note**: Items 1–2 are mandatory if time is constrained (15 minutes minimum; critical path issues).
 
 ---
 
@@ -416,6 +418,8 @@ When using `coderabbit-json` in scripts or CI/CD:
 
 ## Risk Assessment
 
+**Deployment Definition**: In this context, "deployment" means merging the POC4 planning documentation to the main branch and making it available to the implementation team for execution.
+
 ### No Adjustments (Deploy As-Is)
 
 **Risks**:
@@ -426,7 +430,7 @@ When using `coderabbit-json` in scripts or CI/CD:
 
 **Impact**: **MEDIUM** - Functional but suboptimal
 
-**Recommendation**: ❌ **Do not deploy without at least Priority 1 fixes**
+**Recommendation**: ❌ **Do not merge to main branch without at least Priority 1 fixes** (critical path issues must be resolved)
 
 ---
 
@@ -439,7 +443,7 @@ When using `coderabbit-json` in scripts or CI/CD:
 
 **Impact**: **LOW** - Fully functional and professional
 
-**Recommendation**: ✅ **Acceptable for deployment**
+**Recommendation**: ✅ **Acceptable for merge to main branch** (minimum viable quality achieved)
 
 ---
 
@@ -450,7 +454,7 @@ When using `coderabbit-json` in scripts or CI/CD:
 
 **Impact**: **NONE** - Optimal quality
 
-**Recommendation**: ✅ **IDEAL for deployment**
+**Recommendation**: ✅ **IDEAL for merge to main branch** (highest quality, fully polished)
 
 ---
 

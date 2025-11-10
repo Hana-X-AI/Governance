@@ -98,7 +98,7 @@ All validation failures treated equally with no priority distinction:
 ### Service Status
 - **Service Active**: $(sudo systemctl is-active n8n.service 2>/dev/null || echo "unknown")
 - **Service Enabled**: $(sudo systemctl is-enabled n8n.service 2>/dev/null || echo "unknown")
-- **Process ID**: $(pgrep -f "bin/n8n" || echo "No process found")
+- **Process ID**: $(pgrep -u n8n -f "bin/n8n" || echo "No process found")
 - **Running As**: n8n:n8n (UID:$(id -u n8n 2>/dev/null || echo "N/A") GID:$(id -g n8n 2>/dev/null || echo "N/A"))
 
 ### Network Status
@@ -117,7 +117,7 @@ All validation failures treated equally with no priority distinction:
 **Improvements**:
 - ✅ **stderr Redirection**: All commands use `2>/dev/null` to suppress errors
 - ✅ **Fallback Values**: Every command has descriptive `|| echo` fallback
-- ✅ **Process Matching Fixed**: Changed to `pgrep -f "bin/n8n"` (matches actual process)
+- ✅ **Process Matching Fixed**: Changed to `pgrep -u n8n -f "bin/n8n"` (user-scoped to avoid false positives)
 - ✅ **Descriptive Fallbacks**: "unreachable", "Unable to query (DB unreachable)", "N/A"
 
 ---
@@ -128,7 +128,7 @@ All validation failures treated equally with no priority distinction:
 |---------|--------|-------|-------------|
 | **systemctl is-active** | `$(sudo systemctl is-active n8n.service)` | `$(sudo systemctl is-active n8n.service 2>/dev/null \|\| echo "unknown")` | Fallback: "unknown" |
 | **systemctl is-enabled** | `$(sudo systemctl is-enabled n8n.service)` | `$(sudo systemctl is-enabled n8n.service 2>/dev/null \|\| echo "unknown")` | Fallback: "unknown" |
-| **pgrep** | `$(pgrep -f "n8n start")` | `$(pgrep -f "bin/n8n" \|\| echo "No process found")` | Fixed pattern + fallback |
+| **pgrep** | `$(pgrep -f "n8n start")` | `$(pgrep -u n8n -f "bin/n8n" \|\| echo "No process found")` | User-scoped pattern + fallback |
 | **id -u** | `$(id -u n8n)` | `$(id -u n8n 2>/dev/null \|\| echo "N/A")` | Fallback: "N/A" |
 | **curl** | `$(curl ... http://.../)` | `$(curl ... http://.../ 2>/dev/null \|\| echo "unreachable")` | Fallback: "unreachable" |
 | **psql connection** | Complex awk logic | `$(psql ... 2>/dev/null \| grep -q CONNECTED && echo "Active" \|\| echo "Failed (check credentials/network)")` | Descriptive failure |
@@ -280,7 +280,7 @@ else
 fi
 
 # P1-3: Process ownership correct (WARNING)
-n8n_pid=$(pgrep -f "bin/n8n" | head -1)
+n8n_pid=$(pgrep -u n8n -f "bin/n8n" | head -1)
 if [ -n "$n8n_pid" ]; then
   process_user=$(ps -o user= -p "$n8n_pid" 2>/dev/null)
   if [ "$process_user" = "n8n" ]; then

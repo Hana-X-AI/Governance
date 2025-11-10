@@ -278,38 +278,89 @@ cp /opt/n8n/.env.example /opt/n8n/.env
 ```bash
 #!/bin/bash
 # Pre-commit hook to prevent credential exposure
+# Non-interactive - exits non-zero on detection (CI-compatible)
 
 echo "Running pre-commit credential check..."
 
-# Check for common password patterns
+BLOCKED=0
+
+# Check for common password patterns (Major####)
 if git diff --cached --name-only | xargs grep -E 'Major[0-9]{4}!?' 2>/dev/null; then
   echo "❌ BLOCKED: Commit contains 'Major####' password pattern"
-  echo "   Action Required:"
-  echo "   1. Replace with placeholder: <YOUR_SECURE_DATABASE_PASSWORD>"
-  echo "   2. Add security warning comments"
-  echo "   3. Never commit real passwords"
-  exit 1
+  echo "   Files with pattern:"
+  git diff --cached --name-only | xargs grep -l 'Major[0-9]{4}!?' 2>/dev/null
+  BLOCKED=1
+fi
+
+# Check for PGPASSWORD environment variable patterns
+if git diff --cached | grep -E "PGPASSWORD='[^$]" 2>/dev/null; then
+  echo "❌ BLOCKED: Commit contains PGPASSWORD with hardcoded value"
+  echo "   Use PGPASSWORD=\$VAR_NAME or read from secure source"
+  BLOCKED=1
+fi
+
+# Check for export PASSWORD patterns
+if git diff --cached | grep -E 'export.*PASSWORD=' | grep -v 'PASSWORD=\$' | grep -v '<YOUR_' 2>/dev/null; then
+  echo "❌ BLOCKED: Commit contains exported password variable"
+  echo "   Never export passwords - use ephemeral PGPASSWORD= prefix"
+  BLOCKED=1
 fi
 
 # Check for .env files being committed
 if git diff --cached --name-only | grep -E '\.env$|\.env\.local$' 2>/dev/null; then
   echo "❌ BLOCKED: Attempting to commit .env file"
+  echo "   Files detected:"
+  git diff --cached --name-only | grep -E '\.env$|\.env\.local$'
   echo "   Action Required:"
   echo "   1. Add .env to .gitignore"
   echo "   2. Commit .env.example (with placeholders) instead"
   echo "   3. Keep .env local only"
-  exit 1
+  BLOCKED=1
 fi
 
-# Check for plaintext passwords in any file
-if git diff --cached | grep -E 'PASSWORD=.{8,}' | grep -v '<YOUR_' | grep -v 'example' 2>/dev/null; then
-  echo "⚠️  WARNING: Potential password in commit"
-  echo "   Review changes to ensure no real credentials committed"
-  echo "   Continue? (y/n)"
-  read -r response
-  if [ "$response" != "y" ]; then
-    exit 1
-  fi
+# Check for generic API key patterns
+if git diff --cached | grep -E '(api[_-]?key|apikey|api[_-]?secret).*[=:][[:space:]]*["\047][a-zA-Z0-9_-]{20,}["\047]' -i 2>/dev/null; then
+  echo "❌ BLOCKED: Commit contains potential API key"
+  echo "   Pattern matched: api_key/apikey/api_secret with 20+ character value"
+  BLOCKED=1
+fi
+
+# Check for AWS/Cloud credential patterns
+if git diff --cached | grep -E '(AWS_ACCESS_KEY|AWS_SECRET|AKIA[0-9A-Z]{16})' 2>/dev/null; then
+  echo "❌ BLOCKED: Commit contains AWS credential pattern"
+  BLOCKED=1
+fi
+
+# Check for plaintext passwords in any file (non-placeholder)
+if git diff --cached | grep -E 'PASSWORD=.{8,}' | grep -v '<YOUR_' | grep -v 'example' | grep -v 'PASSWORD=\$' | grep -v '\*\*\*\*' 2>/dev/null; then
+  echo "❌ BLOCKED: Potential password in staged changes"
+  echo "   Detected PASSWORD= with non-placeholder value"
+  echo "   Lines matched:"
+  git diff --cached | grep -E 'PASSWORD=.{8,}' | grep -v '<YOUR_' | grep -v 'example' | grep -v 'PASSWORD=\$'
+  BLOCKED=1
+fi
+
+# Check for common password keywords with values
+if git diff --cached | grep -E '(password|passwd|pwd)[[:space:]]*[=:][[:space:]]*["\047][^"\047<$]{6,}["\047]' -i 2>/dev/null; then
+  echo "❌ BLOCKED: Potential password keyword with value detected"
+  BLOCKED=1
+fi
+
+# Check for bearer tokens and JWT patterns
+if git diff --cached | grep -E '(bearer|jwt|token)[[:space:]]*[=:][[:space:]]*["\047][a-zA-Z0-9_-]{30,}["\047]' -i 2>/dev/null; then
+  echo "❌ BLOCKED: Potential bearer token or JWT detected"
+  BLOCKED=1
+fi
+
+if [ $BLOCKED -eq 1 ]; then
+  echo ""
+  echo "❌ COMMIT BLOCKED: Credential exposure detected"
+  echo "   Action Required:"
+  echo "   1. Replace with placeholder: <YOUR_SECURE_PASSWORD>"
+  echo "   2. Add security warning comments"
+  echo "   3. Use variables or secure references instead of hardcoded values"
+  echo "   4. Never commit real passwords, API keys, or tokens"
+  exit 1
 fi
 
 echo "✅ Pre-commit credential check passed"
@@ -321,14 +372,61 @@ exit 0
 # Make executable
 chmod +x .git/hooks/pre-commit
 
-# Test hook
+# Test 1: Major#### pattern (should block)
 echo "DB_POSTGRESDB_PASSWORD=Major8859!" > test.txt
 git add test.txt
 git commit -m "Test commit"
 # Expected: ❌ BLOCKED: Commit contains 'Major####' password pattern
-
-# Clean up test
 git reset HEAD test.txt
+
+# Test 2: PGPASSWORD hardcoded (should block)
+echo "PGPASSWORD='mypassword' psql -h localhost" > test.txt
+git add test.txt
+git commit -m "Test commit"
+# Expected: ❌ BLOCKED: Commit contains PGPASSWORD with hardcoded value
+git reset HEAD test.txt
+
+# Test 3: API key pattern (should block)
+echo 'API_KEY="sk-1234567890abcdefghijklmnopqrstuvwxyz"' > test.txt
+git add test.txt
+git commit -m "Test commit"
+# Expected: ❌ BLOCKED: Commit contains potential API key
+git reset HEAD test.txt
+
+# Test 4: Bearer token (should block)
+echo 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.long_token_here' > test.txt
+git add test.txt
+git commit -m "Test commit"
+# Expected: ❌ BLOCKED: Potential bearer token or JWT detected
+git reset HEAD test.txt
+
+# Test 5: Placeholder (should pass)
+echo "DB_POSTGRESDB_PASSWORD=<YOUR_SECURE_DATABASE_PASSWORD>" > test.txt
+git add test.txt
+git commit -m "Test commit"
+# Expected: ✅ Pre-commit credential check passed
+git reset HEAD test.txt
+
+# Test 6: Variable reference (should pass)
+echo 'PGPASSWORD=$DB_PASSWORD psql -h localhost' > test.txt
+git add test.txt
+git commit -m "Test commit"
+# Expected: ✅ Pre-commit credential check passed
+git reset HEAD test.txt
+
+# Clean up test file
+rm test.txt
+
+# Test 7: CI non-interactive behavior (should exit non-zero)
+echo "DB_PASSWORD=RealPassword123" > test.txt
+git add test.txt
+if git commit -m "Test CI" 2>&1; then
+  echo "ERROR: Hook should have blocked commit"
+  git reset HEAD~1
+else
+  echo "✅ Hook correctly blocks in non-interactive mode"
+  git reset HEAD test.txt
+fi
 rm test.txt
 ```
 
@@ -523,38 +621,113 @@ grep -A5 "SECURITY WARNING" x-docs/n8n-master-deep-dive-analysis.md
 
 ### Integration Test (Pre-Commit Hook)
 
-**Test pre-commit hook blocks credential commits**:
+**Test pre-commit hook blocks credential commits (comprehensive patterns)**:
 
 ```bash
-# Install pre-commit hook
-cat > .git/hooks/pre-commit <<'EOF'
-#!/bin/bash
-if git diff --cached | grep -E 'Major[0-9]{4}!?'; then
-  echo "❌ BLOCKED: Contains password pattern"
-  exit 1
-fi
-exit 0
-EOF
+# Install full pre-commit hook (with all patterns)
+# Copy the complete hook from section 4 above to .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit
 
-# Test: Try to commit file with password
+# Test 1: Major#### password pattern (should block)
 echo "DB_POSTGRESDB_PASSWORD=Major8859!" > test-credential.txt
 git add test-credential.txt
-git commit -m "Test commit with password"
-# Expected: ❌ BLOCKED: Contains password pattern
-# Result: Commit rejected  ✅
+if git commit -m "Test password pattern" 2>&1 | grep -q "BLOCKED"; then
+  echo "✅ Test 1 PASSED: Major#### pattern blocked"
+else
+  echo "❌ Test 1 FAILED: Pattern not detected"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
 
-# Test: Commit with placeholder succeeds
+# Test 2: PGPASSWORD hardcoded (should block)
+echo "PGPASSWORD='secret123' psql -h localhost" > test-credential.txt
+git add test-credential.txt
+if git commit -m "Test PGPASSWORD" 2>&1 | grep -q "BLOCKED"; then
+  echo "✅ Test 2 PASSED: PGPASSWORD hardcoded blocked"
+else
+  echo "❌ Test 2 FAILED: PGPASSWORD not detected"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 3: API key pattern (should block)
+echo 'API_KEY="sk-1234567890abcdefghij1234567890"' > test-credential.txt
+git add test-credential.txt
+if git commit -m "Test API key" 2>&1 | grep -q "BLOCKED"; then
+  echo "✅ Test 3 PASSED: API key pattern blocked"
+else
+  echo "❌ Test 3 FAILED: API key not detected"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 4: Bearer token (should block)
+echo 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.long_token_string' > test-credential.txt
+git add test-credential.txt
+if git commit -m "Test bearer token" 2>&1 | grep -q "BLOCKED"; then
+  echo "✅ Test 4 PASSED: Bearer token blocked"
+else
+  echo "❌ Test 4 FAILED: Bearer token not detected"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 5: Placeholder (should pass)
 echo "DB_POSTGRESDB_PASSWORD=<YOUR_SECURE_DATABASE_PASSWORD>" > test-credential.txt
 git add test-credential.txt
-git commit -m "Test commit with placeholder"
-# Expected: Commit succeeds  ✅
+if git commit -m "Test placeholder" 2>&1 | grep -q "passed"; then
+  echo "✅ Test 5 PASSED: Placeholder allowed"
+  git reset HEAD~1 2>/dev/null
+else
+  echo "❌ Test 5 FAILED: Placeholder incorrectly blocked"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 6: Variable reference (should pass)
+echo 'PGPASSWORD=$DB_PASSWORD psql -h localhost' > test-credential.txt
+git add test-credential.txt
+if git commit -m "Test variable ref" 2>&1 | grep -q "passed"; then
+  echo "✅ Test 6 PASSED: Variable reference allowed"
+  git reset HEAD~1 2>/dev/null
+else
+  echo "❌ Test 6 FAILED: Variable reference incorrectly blocked"
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 7: Non-interactive CI behavior (should exit non-zero)
+echo "export PASSWORD='RealPassword123'" > test-credential.txt
+git add test-credential.txt
+if git commit -m "Test CI mode" 2>&1; then
+  echo "❌ Test 7 FAILED: Should have exited non-zero"
+  git reset HEAD~1 2>/dev/null
+else
+  EXIT_CODE=$?
+  if [ $EXIT_CODE -eq 1 ]; then
+    echo "✅ Test 7 PASSED: Non-interactive exit with code 1 (CI-compatible)"
+  else
+    echo "⚠️  Test 7 WARNING: Exit code was $EXIT_CODE (expected 1)"
+  fi
+fi
+git reset HEAD test-credential.txt 2>/dev/null
+
+# Test 8: .env file commit (should block)
+echo "DB_PASSWORD=secret" > .env
+git add .env
+if git commit -m "Test .env file" 2>&1 | grep -q "BLOCKED"; then
+  echo "✅ Test 8 PASSED: .env file blocked"
+else
+  echo "❌ Test 8 FAILED: .env file not blocked"
+fi
+git reset HEAD .env 2>/dev/null
+rm -f .env
 
 # Clean up
-git reset HEAD test-credential.txt
-rm test-credential.txt
+rm -f test-credential.txt
 
-# Demonstrates: Pre-commit hook successfully blocks credential commits
+echo ""
+echo "Integration Test Summary:"
+echo "✅ Non-interactive: Hook exits immediately without prompts (CI-compatible)"
+echo "✅ Broad patterns: Major####, PGPASSWORD, API keys, tokens, .env files"
+echo "✅ Exit codes: Returns 1 on detection (CI fails), 0 on pass"
+echo "✅ Safe commits: Placeholders and variable references allowed"
+
+# Demonstrates: Pre-commit hook successfully blocks all credential patterns in non-interactive mode
 ```
 
 ---

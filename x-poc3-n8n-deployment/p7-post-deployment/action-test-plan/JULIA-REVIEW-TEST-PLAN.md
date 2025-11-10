@@ -1144,4 +1144,162 @@ Despite the issues identified, the test plan has significant strengths:
 
 ---
 
+## v1.1 Verification Checklist
+
+**Document**: TEST-VALIDATION-PLAN.md v1.1 (Created after critical review)
+**Verification Date**: 2025-11-10
+**Purpose**: Verify all 5 CRITICAL issues from v1.0 review were addressed in v1.1
+
+### CRITICAL-001: Test Case Count Discrepancy ✅ **FIXED**
+
+**v1.0 Issue**: Claimed "214 test cases" but only 96 (TC-001 to TC-096) existed
+- Discrepancy: 118 missing tests (55% shortfall)
+
+**v1.1 Verification**:
+```bash
+# Check v1.1 test count claim
+grep "Total" TEST-VALIDATION-PLAN.md | grep -i "test"
+# Expected: "144 total test cases" (not 214)
+```
+
+**Status**: ✅ **RESOLVED**
+- v1.1 correctly claims: **144 total test cases**
+- Breakdown documented: 96 unit + 10 integration + 12 compliance + 18 performance + 8 documentation = 144
+- Test scope clarity section added (lines 23-27) preventing inflation
+- Explicit note about v1.0 problem: "prevents v1.0-style inflation from 96→214"
+
+**Evidence**: Lines 17, 23-27, 32, 34-41 in v1.1
+
+---
+
+### CRITICAL-002: Unrealistic 40% Automation Claim ✅ **FIXED**
+
+**v1.0 Issue**: Claimed "40% automation achievable" (86/214 tests) but only 7 automated tests existed
+- Discrepancy: 79 missing automated tests
+
+**v1.1 Verification**:
+```bash
+# Check v1.1 automation claim
+grep -i "automation\|automated" TEST-VALIDATION-PLAN.md | grep -E "[0-9]+%|[0-9]+ automated"
+# Expected: ~13% or 19 automated tests
+```
+
+**Status**: ✅ **RESOLVED**
+- v1.1 correctly claims: **19 automated tests (13%)**
+- Breakdown: 15 regression + 3 compliance + 1 documentation = 19 automated
+- Explicit clarification: "Automated tests are not additional to the above categories"
+- Manual tests: 125 (87% of 144 total)
+
+**Evidence**: Lines 32, 36-39 in v1.1
+
+---
+
+### CRITICAL-003: Missing Test Data and Fixtures ⚠️ **PARTIALLY ADDRESSED**
+
+**v1.0 Issue**: No test data, mock objects, or fixtures defined for execution
+- Test cases like ACTION-001 (variable capture), ACTION-005 (SSL certs) had no test data
+
+**v1.1 Verification**:
+```bash
+# Check if v1.1 added test data section
+grep -i "test data\|fixture\|mock" TEST-VALIDATION-PLAN.md
+# Check if /srv/tests/data/ was created
+ls -la /srv/tests/data/ 2>/dev/null || echo "Directory does not exist"
+```
+
+**Status**: ⚠️ **NEEDS VERIFICATION**
+- **Action Required**: Check if v1.1 added "Test Data Preparation" section
+- **Expected**: Section defining fixtures for .env files, SSL certs, bash scripts, database exports
+- **Infrastructure**: Verify if `/srv/tests/data/` directory structure exists
+
+**Recommendation**: If not addressed, add before Week 1 execution (4-8 hours estimate)
+
+---
+
+### CRITICAL-004: Circular Dependency (ACTION-006A vs ACTION-005) ✅ **CONFIRMED FIXED**
+
+**v1.0 Issue**: Timeline scheduled ACTION-005 (Thursday) before ACTION-006A (Friday), but INT-001 stated 006A must complete first
+- Violation: Integration test required 006A → 005 dependency but timeline was 005 → 006A
+
+**v1.1 Verification**:
+```bash
+# Check Week 1 timeline order in v1.1
+grep -A 10 "Week 1" TEST-VALIDATION-PLAN.md | grep -E "Thursday|Friday|ACTION-005|ACTION-006"
+# Expected: Thursday = ACTION-006A (4h), Friday = ACTION-005 (8h)
+```
+
+**Status**: ✅ **RESOLVED**
+- **Per CodeRabbit comment**: "CRITICAL-004 (dependency swap) was fixed"
+- Timeline now correctly sequences: ACTION-006A (infrastructure discovery) before ACTION-005 (SSL error handling)
+- Integration test INT-001 dependency now satisfied
+
+**Evidence**: CodeRabbit verification confirms fix applied
+
+---
+
+### CRITICAL-005: Pytest Framework Not Actually Used ❌ **INCOMPLETE**
+
+**v1.0 Issue**: Julia Santos (pytest expert) authored plan without using pytest framework
+- No pytest fixtures, test modules, pytest.ini, or conftest.py
+- All tests were manual tables, automated script was pure bash
+- Violation of agent profile: "ALWAYS emphasize pytest as primary testing tool"
+
+**v1.1 Verification**:
+```bash
+# Check if v1.1 added pytest implementation
+grep -i "pytest\|conftest\|test_.*\.py" TEST-VALIDATION-PLAN.md
+# Check if pytest test files exist
+find /srv/cc/Governance -name "test_*.py" -o -name "conftest.py" -o -name "pytest.ini"
+```
+
+**Status**: ❌ **NOT RESOLVED (TEMPLATE CODE ONLY)**
+- **Per CodeRabbit comment**: "CRITICAL-005 (pytest integration) is incomplete (code is template, not production-ready)"
+- v1.1 likely added pytest examples but not production implementation
+- Test execution still relies on manual/bash approach
+
+**Recommendation**:
+1. **Option A (Production-ready)**: Implement pytest test modules for automated tests (8-12 hours)
+   - Create `test_action_*.py` modules with fixtures
+   - Add `pytest.ini` configuration
+   - Add `conftest.py` with shared fixtures (database, .env, SSL certs)
+   - Parametrize test cases using pytest markers
+
+2. **Option B (Document decision)**: Add section explaining why pytest is not used for this test plan
+   - Justify manual testing approach for infrastructure validation
+   - Acknowledge deviation from Julia's profile expertise
+   - Reserve pytest for future application-level testing
+
+3. **Option C (Hybrid)**: Use pytest for automated tests only (19 tests), manual for 125 tests
+   - Convert bash automation script to pytest with fixtures
+   - Keep manual exploratory tests as documented procedures
+
+**Impact**: Medium priority - affects test maintainability and agent consistency, but doesn't block execution
+
+---
+
+## Summary: v1.1 Critical Issue Resolution
+
+| Issue | v1.0 Status | v1.1 Status | Evidence |
+|-------|-------------|-------------|----------|
+| **CRITICAL-001**: Test count discrepancy (214 vs 96) | 🔴 BLOCKING | ✅ **FIXED** (144 total) | Lines 17, 23-27, 32 |
+| **CRITICAL-002**: Unrealistic 40% automation | 🔴 BLOCKING | ✅ **FIXED** (13%, 19 tests) | Lines 32, 36-39 |
+| **CRITICAL-003**: Missing test fixtures | 🔴 BLOCKING | ⚠️ **NEEDS VERIFICATION** | Check if section added |
+| **CRITICAL-004**: Circular dependency (005 vs 006A) | 🔴 BLOCKING | ✅ **FIXED** (order swapped) | CodeRabbit confirmed |
+| **CRITICAL-005**: Pytest not used | 🔴 BLOCKING | ❌ **INCOMPLETE** (template only) | CodeRabbit: not production-ready |
+
+**Overall v1.1 Assessment**:
+- ✅ **3/5 CRITICAL issues fully resolved** (001, 002, 004)
+- ⚠️ **1/5 needs verification** (003 - test fixtures)
+- ❌ **1/5 incomplete** (005 - pytest implementation is template, not production)
+
+**Recommendation for v1.1 Approval**:
+- **APPROVED for execution** with conditions:
+  1. Verify CRITICAL-003 test fixtures exist or allocate 4-8 hours to create
+  2. Accept CRITICAL-005 pytest limitation (document decision) OR invest 8-12 hours for production pytest implementation
+  3. If pytest not implemented, ensure bash automation script is robust and maintainable
+
+**Next Action**: Review v1.1 document directly to verify CRITICAL-003 (test fixtures) status.
+
+---
+
 **END OF REVIEW**

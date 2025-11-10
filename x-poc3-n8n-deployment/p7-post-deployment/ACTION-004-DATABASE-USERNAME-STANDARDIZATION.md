@@ -52,6 +52,8 @@ $ psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT cur
 
 ### Table Ownership Verification
 
+**Verified as of**: 2025-11-10 | **n8n version**: v1.118.2 | **Verifier**: Update these fields when re-verifying (run `n8n --version` or check deployment tag/release notes)
+
 All 50 tables are owned by **n8n_user**:
 ```
  Schema |            Name            | Type  |  Owner
@@ -109,7 +111,7 @@ All 50 tables are owned by **n8n_user**:
 (50 rows)
 ```
 
-**Total Tables**: 50 (matches n8n v1.118.2 schema)
+**Total Tables**: 50 (matches schema for n8n version listed above)
 
 ---
 

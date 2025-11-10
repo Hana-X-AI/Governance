@@ -886,7 +886,7 @@ cp /tmp/coderabbit-*.txt tests/fixtures/sample_outputs/
 
 **Steps**:
 ```bash
-echo "0.0-Reasearch/" >> /srv/cc/Governance/x-poc4-coderabbit/.gitignore
+echo "0.0-Research/" >> /srv/cc/Governance/x-poc4-coderabbit/.gitignore
 git status  # Verify api-key.md not shown
 ```
 
@@ -937,7 +937,7 @@ As the senior developer who will implement this code, I **conditionally approve*
    - Must identify edge cases
 
 2. ❌ **Secure API Key** (15 minutes)
-   - Add 0.0-Reasearch/ to .gitignore
+   - Add 0.0-Research/ to .gitignore
    - Verify key not in git history
 
 3. ❌ **Agree on Test Coverage Target** (30 minutes)

@@ -360,6 +360,341 @@ echo "Tables in database: $table_count"
 - Easier to maintain
 - Reduces code duplication
 
+### Implementation Guidance for Reusable Functions
+
+**CodeRabbit Recommendation**: Ensure functions are added to shared utilities, error handling is consistent, and behavior is documented.
+
+#### 1. Shared Script Utilities Location
+
+**Create shared utility library** (recommended for multi-script use):
+
+```bash
+# Create shared utilities directory
+mkdir -p /opt/n8n/scripts/lib
+
+# Create database utility library
+cat > /opt/n8n/scripts/lib/db-utils.sh << 'EOF'
+#!/bin/bash
+# Database Utility Functions for N8N POC3
+# Location: /opt/n8n/scripts/lib/db-utils.sh
+# Version: 1.0
+# Maintained by: Quinn Davis (Database Specialist)
+
+#######################################################################
+# Function: db_query
+# Description: Execute a PostgreSQL query with automatic credential handling
+#
+# Parameters:
+#   $1 - SQL query string (required)
+#   $2 - Database name (optional, defaults to n8n_poc3)
+#   $3 - Username (optional, defaults to n8n_user)
+#
+# Returns:
+#   Query result (trimmed, single-line output)
+#   "ERROR" string if query fails
+#   Exit code: 0=success, 1=failure
+#
+# Example:
+#   user_count=$(db_query "SELECT COUNT(*) FROM \"user\";")
+#   if [ "$user_count" != "ERROR" ]; then
+#     echo "Found $user_count users"
+#   fi
+#
+# Security:
+#   - Loads password from .env file (not hardcoded)
+#   - Unsets PGPASSWORD immediately after query
+#   - Uses -t flag for tuple-only output (no headers)
+#   - Redirects stderr to /dev/null to avoid password exposure
+#######################################################################
+db_query() {
+  local query="$1"
+  local database="${2:-n8n_poc3}"
+  local username="${3:-n8n_user}"
+  local result
+
+  # Validate query parameter
+  if [ -z "$query" ]; then
+    echo "ERROR: db_query requires SQL query parameter" >&2
+    echo "ERROR"
+    return 1
+  fi
+
+  # Load password from .env
+  export PGPASSWORD="$(grep -m1 '^DB_POSTGRESDB_PASSWORD=' /opt/n8n/.env | cut -d= -f2-)"
+
+  # Validate password loaded
+  if [ -z "$PGPASSWORD" ]; then
+    echo "ERROR: Could not load database password from .env" >&2
+    unset PGPASSWORD
+    echo "ERROR"
+    return 1
+  fi
+
+  # Execute query
+  result=$(psql -h hx-postgres-server.hx.dev.local -U "$username" -d "$database" \
+    -t -c "$query" 2>/dev/null || echo "ERROR")
+
+  # Unset password immediately
+  unset PGPASSWORD
+
+  # Return trimmed result
+  echo "$result" | xargs
+
+  # Return exit code based on result
+  if [ "$result" = "ERROR" ]; then
+    return 1
+  fi
+  return 0
+}
+
+#######################################################################
+# Function: db_check_connection
+# Description: Test database connectivity without returning data
+#
+# Parameters:
+#   $1 - Database name (optional, defaults to n8n_poc3)
+#   $2 - Username (optional, defaults to n8n_user)
+#
+# Returns:
+#   Exit code: 0=success, 1=failure
+#   No stdout output
+#
+# Example:
+#   if db_check_connection; then
+#     echo "Database accessible"
+#   else
+#     echo "Database connection failed"
+#   fi
+#
+# Security:
+#   - Same credential handling as db_query
+#   - Minimal query (SELECT 1) reduces database load
+#######################################################################
+db_check_connection() {
+  local database="${1:-n8n_poc3}"
+  local username="${2:-n8n_user}"
+
+  # Load password from .env
+  export PGPASSWORD="$(grep -m1 '^DB_POSTGRESDB_PASSWORD=' /opt/n8n/.env | cut -d= -f2-)"
+
+  if [ -z "$PGPASSWORD" ]; then
+    unset PGPASSWORD
+    return 1
+  fi
+
+  # Test connection with minimal query
+  psql -h hx-postgres-server.hx.dev.local -U "$username" -d "$database" \
+    -c "SELECT 1" >/dev/null 2>&1
+
+  local exit_code=$?
+  unset PGPASSWORD
+  return $exit_code
+}
+
+#######################################################################
+# Function: db_get_table_count
+# Description: Get count of tables in public schema (common validation)
+#
+# Returns:
+#   Number of tables, or "ERROR" on failure
+#
+# Example:
+#   table_count=$(db_get_table_count)
+#   echo "Database has $table_count tables"
+#######################################################################
+db_get_table_count() {
+  db_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';"
+}
+
+#######################################################################
+# Function: db_get_user_count
+# Description: Get count of N8N users (common validation)
+#
+# Returns:
+#   Number of users, or "ERROR" on failure
+#
+# Example:
+#   user_count=$(db_get_user_count)
+#   if [ "$user_count" -ge 1 ]; then
+#     echo "Admin user exists"
+#   fi
+#######################################################################
+db_get_user_count() {
+  db_query 'SELECT COUNT(*) FROM "user";'
+}
+
+# Export functions for use in other scripts
+export -f db_query
+export -f db_check_connection
+export -f db_get_table_count
+export -f db_get_user_count
+EOF
+
+chmod 644 /opt/n8n/scripts/lib/db-utils.sh
+chown n8n:n8n /opt/n8n/scripts/lib/db-utils.sh
+```
+
+#### 2. Using Shared Utilities in Scripts
+
+**Import utilities at beginning of script**:
+
+```bash
+#!/bin/bash
+# N8N Sign-Off Validation Script
+
+# Import database utilities
+source /opt/n8n/scripts/lib/db-utils.sh
+
+# Now use functions
+if db_check_connection; then
+  echo "✅ P0-4: Database connection active"
+else
+  echo "❌ P0-4: Database connection FAILED"
+  exit 1
+fi
+
+user_count=$(db_get_user_count)
+if [ "$user_count" != "ERROR" ] && [ "$user_count" -ge 1 ]; then
+  echo "✅ P0-5: Admin user exists ($user_count user(s))"
+fi
+```
+
+#### 3. Error Handling Consistency
+
+**Error handling standards documented**:
+
+| Error Condition | Function Behavior | Return Value | Exit Code |
+|-----------------|-------------------|--------------|-----------|
+| **Missing query parameter** | Log error to stderr | "ERROR" string | 1 |
+| **Password not found in .env** | Log error to stderr | "ERROR" string | 1 |
+| **Database connection fails** | Silent (stderr to /dev/null) | "ERROR" string | 1 |
+| **Query execution fails** | Silent (stderr to /dev/null) | "ERROR" string | 1 |
+| **Successful query** | Return result (trimmed) | Query result | 0 |
+
+**Calling scripts must check for "ERROR" string**:
+
+```bash
+result=$(db_query "SELECT version();")
+if [ "$result" = "ERROR" ]; then
+  echo "Query failed - check database connectivity"
+  exit 1
+fi
+echo "PostgreSQL version: $result"
+```
+
+#### 4. Testing Shared Utilities
+
+**Create test script**:
+
+```bash
+cat > /opt/n8n/scripts/test-db-utils.sh << 'EOF'
+#!/bin/bash
+# Test database utility functions
+
+source /opt/n8n/scripts/lib/db-utils.sh
+
+echo "=== Testing Database Utilities ==="
+echo ""
+
+# Test 1: Connection check
+echo "Test 1: db_check_connection"
+if db_check_connection; then
+  echo "✅ Connection test passed"
+else
+  echo "❌ Connection test failed"
+fi
+echo ""
+
+# Test 2: User count
+echo "Test 2: db_get_user_count"
+user_count=$(db_get_user_count)
+if [ "$user_count" != "ERROR" ]; then
+  echo "✅ User count: $user_count"
+else
+  echo "❌ User count query failed"
+fi
+echo ""
+
+# Test 3: Table count
+echo "Test 3: db_get_table_count"
+table_count=$(db_get_table_count)
+if [ "$table_count" != "ERROR" ]; then
+  echo "✅ Table count: $table_count"
+else
+  echo "❌ Table count query failed"
+fi
+echo ""
+
+# Test 4: Custom query
+echo "Test 4: db_query (custom)"
+version=$(db_query "SELECT version();")
+if [ "$version" != "ERROR" ]; then
+  echo "✅ PostgreSQL version: ${version:0:50}..."
+else
+  echo "❌ Custom query failed"
+fi
+echo ""
+
+# Test 5: Error handling (invalid query)
+echo "Test 5: Error handling"
+result=$(db_query "INVALID SQL;")
+if [ "$result" = "ERROR" ]; then
+  echo "✅ Error handling works correctly"
+else
+  echo "❌ Error handling failed (should return ERROR)"
+fi
+echo ""
+
+echo "=== Test Complete ==="
+EOF
+
+chmod +x /opt/n8n/scripts/test-db-utils.sh
+chown n8n:n8n /opt/n8n/scripts/test-db-utils.sh
+
+# Run tests
+bash /opt/n8n/scripts/test-db-utils.sh
+```
+
+#### 5. Maintenance Guidelines
+
+**When to update shared utilities**:
+
+1. **Database connection changes**: Update server hostname, port, default database
+2. **Credential location changes**: Update .env file path in password loading
+3. **Additional utility functions**: Add with full documentation header
+4. **Error handling improvements**: Update consistently across all functions
+
+**Version control**:
+- Increment version number in file header for each change
+- Document changes in comment block
+- Test all dependent scripts after updates
+
+**Dependency tracking**:
+```bash
+# Find all scripts using db-utils.sh
+grep -r "source.*db-utils.sh" /opt/n8n/scripts/
+```
+
+#### 6. Migration Plan for Existing Scripts
+
+**Phase 1: Create shared utilities** (30 minutes)
+1. Create `/opt/n8n/scripts/lib/db-utils.sh` with documented functions
+2. Run test-db-utils.sh to validate
+3. Document utility usage in project README
+
+**Phase 2: Update existing scripts** (1-2 hours)
+1. Identify scripts with inline database queries:
+   - `t-044-deployment-sign-off.md` (lines 94-113)
+   - Any other validation scripts
+2. Replace inline code with `source` + function calls
+3. Test each script after migration
+4. Verify no regression in functionality
+
+**Phase 3: Standardize new scripts** (ongoing)
+- All new scripts must use shared utilities
+- Code review checklist: "Uses db-utils.sh for database queries?"
+- Document standard in developer guidelines
+
 ---
 
 ## Security Considerations

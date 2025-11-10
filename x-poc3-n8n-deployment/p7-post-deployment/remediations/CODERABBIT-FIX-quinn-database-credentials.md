@@ -222,25 +222,61 @@ sudo nano /srv/cc/Governance/0.2-credentials/hx-credentials.md
 # Change: svc-n8n:OldPassword123
 # To:     svc-n8n:NewPassword456
 
-# 2. Update PostgreSQL user password
-sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD 'NewPassword456';"
+# 2. Generate secure password (if not already done)
+NEW_PASSWORD=$(openssl rand -base64 24)
+echo "Generated password (store securely): $NEW_PASSWORD"
 
-# 3. Update .env file on n8n server
-ssh hx-n8n-server.hx.dev.local
-sudo sed -i 's/DB_POSTGRESDB_PASSWORD=.*/DB_POSTGRESDB_PASSWORD=NewPassword456/' /opt/n8n/.env
+# 3. Update PostgreSQL user password (single command, no export)
+# Read password securely, avoiding shell history
+read -sp "Enter new password for svc-n8n: " NEW_PASSWORD
+echo
+PGPASSWORD="$NEW_PASSWORD" sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
 
-# 4. Verify .env updated
-sudo grep DB_POSTGRESDB_PASSWORD /opt/n8n/.env
+# 4. Create .pgpass for postgres user (for verification without exposing password)
+sudo -u postgres bash -c "cat > ~/.pgpass << 'EOF'
+hx-postgres-server.hx.dev.local:5432:n8n_poc3:svc-n8n:$NEW_PASSWORD
+EOF"
+sudo -u postgres chmod 0600 ~/.pgpass
 
-# 5. Rolling restart (if clustered)
+# 5. Update .env file on n8n server (secure method using temporary file)
+ssh hx-n8n-server.hx.dev.local << 'ENDSSH'
+# Create secure temporary file
+TEMP_ENV=$(mktemp /tmp/.env.XXXXXX)
+chmod 600 "$TEMP_ENV"
+
+# Read new password securely
+read -sp "Enter new password for svc-n8n: " NEW_PASSWORD
+echo
+
+# Update password in temp file
+sudo grep -v "^DB_POSTGRESDB_PASSWORD=" /opt/n8n/.env > "$TEMP_ENV"
+echo "DB_POSTGRESDB_PASSWORD=$NEW_PASSWORD" >> "$TEMP_ENV"
+
+# Atomic replace with correct permissions
+sudo cp "$TEMP_ENV" /opt/n8n/.env
+sudo chown n8n:n8n /opt/n8n/.env
+sudo chmod 600 /opt/n8n/.env
+
+# Clean up
+rm -f "$TEMP_ENV"
+unset NEW_PASSWORD
+ENDSSH
+
+# 6. Verify .env updated (without displaying password)
+ssh hx-n8n-server.hx.dev.local "sudo grep -c DB_POSTGRESDB_PASSWORD /opt/n8n/.env"
+
+# 7. Rolling restart (if clustered)
 # Restart instance 1, wait for health check, then instance 2, etc.
-sudo systemctl restart n8n
+ssh hx-n8n-server.hx.dev.local "sudo systemctl restart n8n"
 
-# 6. Verify new credentials active
-PGPASSWORD='NewPassword456' psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT current_user;"
+# 8. Verify new credentials active (using .pgpass, no password in command)
+sudo -u postgres psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT current_user;"
 
-# 7. Monitor logs for connection errors
-sudo journalctl -u n8n -f --since "5 minutes ago"
+# 9. Monitor logs for connection errors
+ssh hx-n8n-server.hx.dev.local "sudo journalctl -u n8n -f --since '5 minutes ago'"
+
+# 10. Clean up sensitive variables
+unset NEW_PASSWORD
 ```
 
 **Downtime**: Zero (if multiple instances with load balancer)
@@ -259,24 +295,57 @@ sudo journalctl -u n8n -f --since "5 minutes ago"
 # 1. Update credentials in vault
 sudo nano /srv/cc/Governance/0.2-credentials/hx-credentials.md
 
-# 2. Update PostgreSQL user password
-sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD 'NewPassword456';"
+# 2. Generate secure password or use vault value
+read -sp "Enter new password for svc-n8n: " NEW_PASSWORD
+echo
 
-# 3. Update .env file
-ssh hx-n8n-server.hx.dev.local
-sudo sed -i 's/DB_POSTGRESDB_PASSWORD=.*/DB_POSTGRESDB_PASSWORD=NewPassword456/' /opt/n8n/.env
+# 3. Update PostgreSQL user password (single command, ephemeral credential)
+PGPASSWORD="$NEW_PASSWORD" sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
 
-# 4. Restart n8n service
-sudo systemctl restart n8n
+# 4. Create/update .pgpass for postgres user (for verification)
+sudo -u postgres bash -c "cat > ~/.pgpass << 'EOF'
+hx-postgres-server.hx.dev.local:5432:n8n_poc3:svc-n8n:$NEW_PASSWORD
+EOF"
+sudo -u postgres chmod 0600 ~/.pgpass
 
-# 5. Verify service started successfully
-sudo systemctl status n8n
+# 5. Update .env file on n8n server (secure method)
+ssh hx-n8n-server.hx.dev.local << 'ENDSSH'
+# Create secure temporary file
+TEMP_ENV=$(mktemp /tmp/.env.XXXXXX)
+chmod 600 "$TEMP_ENV"
 
-# 6. Test database connectivity
-PGPASSWORD='NewPassword456' psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT 1;"
+# Read password securely
+read -sp "Enter new password for svc-n8n: " NEW_PASSWORD
+echo
 
-# 7. Verify n8n can access database
+# Update password without exposing in process list
+sudo grep -v "^DB_POSTGRESDB_PASSWORD=" /opt/n8n/.env > "$TEMP_ENV"
+echo "DB_POSTGRESDB_PASSWORD=$NEW_PASSWORD" >> "$TEMP_ENV"
+
+# Atomic replace
+sudo cp "$TEMP_ENV" /opt/n8n/.env
+sudo chown n8n:n8n /opt/n8n/.env
+sudo chmod 600 /opt/n8n/.env
+
+# Clean up
+rm -f "$TEMP_ENV"
+unset NEW_PASSWORD
+ENDSSH
+
+# 6. Restart n8n service
+ssh hx-n8n-server.hx.dev.local "sudo systemctl restart n8n"
+
+# 7. Verify service started successfully
+ssh hx-n8n-server.hx.dev.local "sudo systemctl status n8n"
+
+# 8. Test database connectivity (using .pgpass, no password in command)
+sudo -u postgres psql -h hx-postgres-server.hx.dev.local -U svc-n8n -d n8n_poc3 -c "SELECT 1;"
+
+# 9. Verify n8n can access database
 curl -k https://n8n.hx.dev.local/healthz
+
+# 10. Clean up sensitive variables
+unset NEW_PASSWORD
 ```
 
 **Downtime**: 5-30 seconds (service restart time)

@@ -9,6 +9,231 @@
 
 ---
 
+## Security & Access Control
+
+**Classification**: CONFIDENTIAL - Contains sensitive credential information
+
+**⚠️  CRITICAL SECURITY NOTICE**:
+- This document contains **credential references and account details** for production systems
+- **DO NOT commit actual passwords or API keys** to version control
+- **DO NOT distribute** outside authorized personnel
+- All credentials referenced must be stored in secure credential vaults (Bitwarden, HashiCorp Vault, etc.)
+
+**Authorized Access**:
+- N8N Deployment Team (Omar Rodriguez, Quinn Davis)
+- Infrastructure Administrators (William Taylor)
+- Database Administrators (Quinn Davis)
+- Security Team (for audit purposes)
+
+**Distribution Restrictions**:
+- Internal use only within Hana-X Infrastructure Team
+- Requires explicit approval from Project Lead for external sharing
+- Must use encrypted channels for transmission (SSH, HTTPS, encrypted email)
+
+**Credential Rotation**:
+- **Rotation Interval**: Every 90 days (quarterly)
+- **Next Rotation Due**: February 8, 2026
+- All passwords must be rotated if:
+  - Team member leaves project
+  - Suspected compromise or breach
+  - After security incident
+  - Compliance audit requirement
+
+**Handling Guidance**:
+- Store physical/digital copies in encrypted storage only
+- Delete local copies after use (do not leave in Downloads/)
+- Use credential managers (Bitwarden, 1Password) for password storage
+- Never share credentials via Slack, email, or unencrypted chat
+- Report suspected credential exposure immediately to Security Team
+
+---
+
+## Account Governance Policies
+
+### Password Rotation Schedule
+
+| Account Type | Rotation Frequency | Rotation Owner | Last Rotated | Next Due | Procedure Reference |
+|--------------|-------------------|----------------|--------------|----------|---------------------|
+| System Accounts (n8n, agent0) | 90 days | Infrastructure Team (William Taylor) | 2025-11-08 | 2026-02-08 | [SOP-INFRA-001: System Account Password Rotation](#) |
+| Database Roles (svc-postgres, n8n_user) | 90 days | Database Team (Quinn Davis) | 2025-11-08 | 2026-02-08 | [SOP-DB-002: Database Role Password Rotation](#) |
+| Domain Accounts (n8n@hx.dev.local, svc-postgres@hx.dev.local) | 90 days | AD Administrators (William Taylor) | 2025-10-27 | 2026-01-27 | [SOP-AD-003: Domain Account Management](#) |
+
+**Rotation Triggers** (immediate rotation required):
+- Scheduled 90-day rotation
+- Team member departure from project
+- Suspected credential compromise or breach
+- Security incident involving affected system
+- Compliance audit requirement
+- Service account privilege escalation
+
+**Rotation Procedure**:
+1. Update password in credential vault (Bitwarden/HashiCorp Vault)
+2. Update application configuration files (`.env`, systemd, etc.)
+3. Restart affected services to apply new credentials
+4. Test connectivity and application functionality
+5. Update "Last Rotated" date in this document
+6. Notify dependent teams via Slack #infra-alerts
+
+### Account Lifecycle Management
+
+#### Account Creation
+- **Approval Required**: Yes (via ServiceNow ticket or Project Charter)
+- **Approval Authority**: Infrastructure Lead (William Taylor) or Project Manager (Agent Zero)
+- **Creation Ticket Template**: `[INFRA] Create Account: <account_name> for <purpose>`
+- **Required Documentation**:
+  - Business justification
+  - Access level required (least privilege)
+  - Owner/responsible party
+  - Expected lifecycle (temporary/permanent)
+- **Creation Checklist Reference**: [CHECKLIST-ACC-CREATE.md](#)
+- **Ticket Examples**:
+  - Task T-011: Create n8n system user (✅ Completed 2025-11-08)
+  - Task T-018: Create n8n_user database role (✅ Completed Phase 1)
+
+#### Account Modification
+- **Change Logging**: All modifications logged in ServiceNow + this document
+- **Modification Types Tracked**:
+  - Privilege changes (sudo access, database grants)
+  - Group membership changes
+  - Home directory changes
+  - Shell changes
+  - Password resets (rotation events)
+- **Change Approval**: Infrastructure Lead approval for privilege escalation
+- **Audit Trail Location**: `/var/log/auth.log` (system), PostgreSQL audit logs (database)
+
+#### Account Deprovisioning
+- **Notice Period**: 30 days advance notice for planned deprovisioning
+- **Emergency Deprovisioning**: Immediate for security incidents
+- **Deprovisioning Ticket**: `[INFRA] Deprovision Account: <account_name>`
+- **Deprovisioning Steps**:
+  1. Disable account (lock, not delete) for 90 days retention
+  2. Revoke all access grants and group memberships
+  3. Archive home directory to `/archive/users/<account>-<date>/`
+  4. Document deprovisioning reason and date
+  5. Update this inventory (mark as DEPROVISIONED)
+  6. Notify dependent systems/teams
+- **Audit Capture**: Full snapshot of account state before deprovisioning
+- **Retention**: Account data retained 90 days, audit logs retained 7 years
+
+#### Offboarding Process
+**When Team Member Leaves Project**:
+1. **T+0 (Departure Day)**:
+   - Disable all associated accounts immediately
+   - Revoke database access (REVOKE grants)
+   - Remove from sudo/admin groups
+   - Change all shared passwords they had access to
+2. **T+1 (Next Business Day)**:
+   - Review audit logs for last 30 days of activity
+   - Archive personal files and workspace
+   - Transfer ownership of service accounts to replacement
+3. **T+7 (One Week)**:
+   - Complete offboarding checklist
+   - Document knowledge transfer status
+4. **T+90 (Three Months)**:
+   - Permanently delete disabled accounts
+   - Purge personal data (retain audit logs only)
+
+**Offboarding Checklist**: [CHECKLIST-OFFBOARD.md](#)
+
+### Access Audit Trail
+
+| Audit Type | Log Location | Retention Period | What to Capture | Review Frequency |
+|------------|--------------|------------------|-----------------|------------------|
+| System Access | `/var/log/auth.log` | 1 year | sudo usage, SSH logins, failed auth attempts | Weekly |
+| Database Access | PostgreSQL logs (`/var/log/postgresql/`) | 1 year | Connection attempts, failed auth, privilege escalation | Weekly |
+| Application Logs | `/var/log/n8n/` | 90 days | N8N startup, DB connections, errors | Daily (active issues) |
+| File Access | Syslog (`/var/log/syslog`) | 90 days | File ownership changes, permission changes | On-demand |
+| Credential Vault | Bitwarden audit log | 7 years | Password retrievals, vault access, sharing events | Monthly |
+
+**Audit Review Process**:
+- **Automated Monitoring**: Failed login attempts trigger alerts (#infra-alerts)
+- **Manual Review**: Weekly audit log review by Infrastructure Team
+- **Incident Investigation**: Full audit trail pulled for security incidents
+- **Compliance Reporting**: Quarterly access review for compliance audits
+
+**Audit Log Backup**: All logs backed up to central logging server (retention per type)
+
+### Incident Response
+
+#### Immediate Actions (T+0 to T+15 minutes)
+1. **Contain**: Disable compromised account immediately
+   ```bash
+   # System account
+   sudo usermod -L <username>
+   # Database role
+   sudo -u postgres psql -c "ALTER ROLE <role> NOLOGIN;"
+   ```
+2. **Isolate**: Terminate all active sessions for compromised account
+3. **Alert**: Notify Security Team via #security-incidents Slack channel
+4. **Document**: Create incident ticket: `[SEC-INCIDENT] Compromised Account: <account>`
+
+#### Escalation Contacts
+| Role | Contact | Primary Channel | Response SLA |
+|------|---------|----------------|--------------|
+| Security Team Lead | [Security Lead Name] | Slack: @security-lead | 15 minutes |
+| Infrastructure Lead | William Taylor | Slack: @william-taylor | 30 minutes |
+| Database Administrator | Quinn Davis | Slack: @quinn-davis | 30 minutes |
+| Project Manager | Agent Zero | Slack: @agent-zero | 1 hour |
+| Executive Escalation | [CTO/CISO Name] | Email + Phone | 2 hours |
+
+#### Investigation & Forensics (T+1 hour to T+24 hours)
+1. **Preserve Evidence**: Copy all relevant logs before rotation
+   ```bash
+   sudo tar -czf /secure/incident-$(date +%Y%m%d-%H%M%S).tar.gz \
+     /var/log/auth.log* /var/log/postgresql/* /var/log/n8n/*
+   ```
+2. **Forensics Retention**: 7 years for compliance (legal hold)
+3. **Root Cause Analysis**: Complete within 24 hours
+4. **Remediation Plan**: Document and implement fixes within 48 hours
+
+#### Post-Incident (T+48 hours)
+1. Rotate all potentially affected credentials
+2. Review and update access controls
+3. Conduct post-mortem (blameless)
+4. Update incident response procedures
+5. Security awareness training (if human error involved)
+
+**Incident Response Runbook**: [RUNBOOK-SEC-INCIDENT.md](#)
+
+### Break-Glass Procedures
+
+**Purpose**: Emergency access when primary authentication unavailable (e.g., credential vault outage, locked out admins)
+
+#### Emergency Access Workflow
+
+**Scenario 1: Production System Down, Primary Admin Unavailable**
+1. **Declare Emergency**: Incident Commander declares break-glass activation
+2. **Approval Required**: Two approvers from different teams
+   - Infrastructure Lead (William Taylor) OR Deputy
+   - Project Manager (Agent Zero) OR Security Lead
+3. **Access Method**:
+   - Use physical server console access (hx-n8n-server, hx-postgres-server)
+   - Single-user mode boot (requires physical access or IPMI/iLO)
+   - Emergency backup admin account (stored in sealed envelope, office safe)
+4. **RTO (Recovery Time Objective)**: 2 hours from emergency declaration
+5. **Actions Permitted**:
+   - Service restart/recovery only
+   - Read-only data access for diagnosis
+   - Emergency password resets (must be rotated within 24h)
+6. **Logging**: All break-glass actions logged via screen recording + manual log
+7. **Post-Emergency**:
+   - Reset all emergency access passwords within 24 hours
+   - Full audit review within 48 hours
+   - Post-mortem within 1 week
+
+#### Break-Glass Account Details
+- **Location**: Sealed envelope in office safe (Building A, Floor 2)
+- **Contents**: Root password for hx-n8n-server, postgres superuser password
+- **Access Log**: Physical log book (must sign when opened)
+- **Rotation**: Break-glass passwords rotated after each use + quarterly
+- **Verification**: Monthly tamper check (envelope seal inspection)
+
+**Break-Glass Activation Checklist**: [CHECKLIST-BREAKGLASS.md](#)
+
+**Emergency Contact Card**: [CARD-EMERGENCY-CONTACTS.pdf](#)
+
+---
+
 ## Executive Summary
 
 This document provides a complete inventory of all accounts (system users, database roles, and service accounts) involved in the n8n POC3 deployment. It documents **what exists**, **what was attempted**, **what failed**, and **what is recommended** for proper configuration.
@@ -217,46 +442,65 @@ sudo -u postgres /usr/local/pgsql/bin/psql -c "\du postgres"
 
 ---
 
-### 2.2 svc-postgres Application Service Account ⭐ RECOMMENDED
+### 2.2 Application Database Roles - Comparison
 
-**Status**: ✅ **EXISTS AND VERIFIED**
+**Status**: ✅ Both roles exist and verified working (2025-11-08)
 
-| Property | Value |
-|----------|-------|
-| **Role Name** | `svc-postgres` |
-| **Type** | PostgreSQL superuser (application service account) |
-| **SUPERUSER** | Yes (t) |
-| **LOGIN** | Yes (t) |
-| **Password** | `Major8859!` (verified working 2025-11-08) |
-| **Created** | October 27, 2025 |
-| **Purpose** | **RECOMMENDED** application database connections |
-| **Database** | n8n_poc3 (and all other databases) |
+| Property | **svc-postgres** ⭐ RECOMMENDED | **n8n_user** (Currently in Use) |
+|----------|--------------------------------|----------------------------------|
+| **Role Name** | `svc-postgres` | `n8n_user` |
+| **Type** | PostgreSQL superuser (application service account) | PostgreSQL role (non-superuser) |
+| **SUPERUSER** | Yes (t) | No (f) |
+| **LOGIN** | Yes (t) | Yes (t) |
+| **Password** | `Major8859!` (verified 2025-11-08) | `Major8859!` (verified 2025-11-08) |
+| **Created** | October 27, 2025 | Phase 1 (Quinn Davis, Task T-018) |
+| **Status** | ✅ VERIFIED | ✅ VERIFIED |
+| **Privileges** | Full superuser (all databases) | n8n_poc3 only: CONNECT, CREATE, CRUD on public schema |
+| **Best For** | Production apps needing migrations | Least-privilege apps with pre-created schema |
 
-**Privileges**:
-- Full superuser privileges (same as postgres)
-- Can connect to n8n_poc3 database
-- Can create tables, indexes, sequences
-- Full CRUD operations on all schemas
+#### Role-Specific Notes
 
-**Connection Test** ✅:
+**svc-postgres** ⭐:
+- Created via `samba-tool` on Domain Controller (hx-dc-server)
+- Domain-integrated (available on all domain-joined servers)
+- Per credentials document: "**RECOMMENDED FOR ALL APPLICATIONS**"
+- Used by other applications (LiteLLM, FastMCP)
+- Superuser privileges allow n8n to run migrations automatically
+
+**n8n_user**:
+- Created per Task T-018 specification
+- Principle of least privilege (non-superuser)
+- Limited to n8n_poc3 database only
+- Currently configured in `/opt/n8n/.env`
+- Default privileges configured for future tables
+
+#### Verification
+
+**Connection Tests** (both ✅ SUCCESS on 2025-11-08 by Quinn Davis):
+
 ```bash
 # From hx-n8n-server (192.168.10.215)
+
+# Test svc-postgres
 PGPASSWORD='Major8859!' psql -h 192.168.10.209 -U svc-postgres -d n8n_poc3 -c "SELECT current_user;"
 # Output: current_user = svc-postgres
-# Result: ✅ SUCCESS (verified 2025-11-08 by Quinn Davis)
+
+# Test n8n_user
+PGPASSWORD='Major8859!' psql -h 192.168.10.209 -U n8n_user -d n8n_poc3 -c "SELECT current_user;"
+# Output: current_user = n8n_user
 ```
 
-**Verification** (from QUINN-DATABASE-RESOLUTION.md):
-```
-✅ Role svc-postgres exists (SUPERUSER, LOGIN)
-✅ Password 'Major8859!' verified working
-✅ Remote connections from N8N server work via psql
-✅ Authentication method: scram-sha-256
-```
+**Verification Checklist** (from QUINN-DATABASE-RESOLUTION.md):
+- ✅ Both roles exist with correct privileges
+- ✅ Password `Major8859!` verified working for both
+- ✅ Remote connections from N8N server work via psql
+- ✅ Authentication method: scram-sha-256
 
-**Recommended Connection String**:
+#### Recommended Connection String
+
+**For svc-postgres** (recommended):
 ```bash
-# Environment variables (recommended)
+# Environment variables
 DB_TYPE=postgresdb
 DB_POSTGRESDB_HOST=192.168.10.209
 DB_POSTGRESDB_PORT=5432
@@ -268,70 +512,29 @@ DB_POSTGRESDB_PASSWORD=Major8859!
 DATABASE_URL=postgresql://svc-postgres:Major8859!@192.168.10.209:5432/n8n_poc3
 ```
 
-**Documentation References**:
-- Credentials: `/srv/cc/Governance/0.0-governance/0.0.5-Delivery/0.0.5.2-credentials/0.0.5.2.1-credentials.md` (Section 6)
-- Escalation: `/srv/cc/Governance/x-poc3-n8n-deployment/ESCALATION-QUINN-N8N-DATABASE-AUTH.md`
-- Resolution: `/srv/cc/Governance/x-poc3-n8n-deployment/QUINN-DATABASE-RESOLUTION.md`
-
-**Why Recommended** ⭐:
-- Per credentials document: "**RECOMMENDED FOR ALL APPLICATIONS**"
-- Dedicated application service account (not mixed with admin tasks)
-- Same privileges as postgres superuser
-- Already verified working from n8n server
-- Used by other applications (LiteLLM, FastMCP)
-
-**Notes**:
-- Created via `samba-tool` on Domain Controller (hx-dc-server)
-- Domain-integrated account (available on all domain-joined servers)
-- Password verified reset and working as of 2025-11-08 (Quinn Davis)
-- Superuser privileges allow n8n to run migrations automatically
-
----
-
-### 2.3 n8n_user Database Role (Currently in Use)
-
-**Status**: ✅ **EXISTS AND WORKING**
-
-| Property | Value |
-|----------|-------|
-| **Role Name** | `n8n_user` |
-| **Type** | PostgreSQL role (non-superuser) |
-| **SUPERUSER** | No (f) |
-| **LOGIN** | Yes (t) |
-| **Password** | `Major8859!` (verified working 2025-11-08) |
-| **Created** | During Phase 1 (Quinn Davis, Task T-018) |
-| **Purpose** | N8N application database access |
-| **Database** | n8n_poc3 |
-
-**Privileges**:
-- CONNECT privilege on n8n_poc3 database
-- CREATE privilege on public schema
-- SELECT, INSERT, UPDATE, DELETE on all tables in public schema
-- USAGE on sequences
-- Default privileges configured for future tables
-
-**Connection Test** ✅:
-```bash
-# From hx-n8n-server (192.168.10.215)
-PGPASSWORD='Major8859!' psql -h 192.168.10.209 -U n8n_user -d n8n_poc3 -c "SELECT current_user;"
-# Output: current_user = n8n_user
-# Result: ✅ SUCCESS (verified 2025-11-08 by Quinn Davis)
-```
-
-**Verification** (from QUINN-DATABASE-RESOLUTION.md):
-```
-✅ Role n8n_user exists (LOGIN)
-✅ Password 'Major8859!' verified working
-✅ Remote connections from N8N server work via psql
-```
-
-**Current Configuration** (as deployed):
+**For n8n_user** (currently deployed):
 ```bash
 # From /opt/n8n/.env on hx-n8n-server
 DB_POSTGRESDB_URL=postgresql://n8n_user:Major8859!@192.168.10.209:5432/n8n_poc3
 ```
 
-**Creation Command** (from Task T-018):
+#### pg_hba.conf Configuration
+
+```
+# Allows both roles to connect from N8N subnet
+host    all    all    192.168.10.0/24    scram-sha-256
+```
+
+#### Creation Commands Reference
+
+**svc-postgres** (created via samba-tool):
+```bash
+# On hx-dc-server
+samba-tool user create svc-postgres 'Major8859!'
+# Database role created automatically via domain integration
+```
+
+**n8n_user** (from Task T-018):
 ```sql
 -- On hx-postgres-server
 CREATE USER n8n_user WITH ENCRYPTED PASSWORD 'Major8859!';
@@ -341,14 +544,11 @@ GRANT USAGE, CREATE ON SCHEMA public TO n8n_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO n8n_user;
 ```
 
-**pg_hba.conf Entry**:
-```
-host    all    all    192.168.10.0/24    scram-sha-256
-```
+#### Documentation References
 
-**Notes**:
-- ✅ Currently configured in `/opt/n8n/.env`
-- ✅ Password verified working (manual psql test successful)
+- **Credentials**: `/srv/cc/Governance/0.0-governance/0.0.5-Delivery/0.0.5.2-credentials/0.0.5.2.1-credentials.md` (Section 6)
+- **Escalation**: `/srv/cc/Governance/x-poc3-n8n-deployment/ESCALATION-QUINN-N8N-DATABASE-AUTH.md`
+- **Resolution**: `/srv/cc/Governance/x-poc3-n8n-deployment/QUINN-DATABASE-RESOLUTION.md`
 - ⚠️ Non-superuser role (may require schema updates for migrations)
 - ⚠️ Less privileged than svc-postgres (principle of least privilege)
 - ⚠️ N8N service failing despite correct credentials (application config issue, NOT database issue per Quinn's investigation)
@@ -817,6 +1017,21 @@ getent passwd n8n
 
 **Ownership**: Omar Rodriguez (N8N application layer, NOT database layer)
 
+#### Issue 1 Escalation
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Days Blocked** | 2 days | Since November 8, 2025 |
+| **Escalation Required** | YES | Blocking Phase 2 completion |
+| **Escalation Owner** | William Taylor (Infrastructure Lead) | Technical escalation for environment/systemd issues |
+| **Escalation Deadline** | 2025-11-11 EOD | If not resolved by Nov 11, escalate to Project Manager |
+| **Fallback Plan** | Use simplified password without special chars (e.g., `Major8859`) as temporary workaround; rotate to secure password post-deployment | Allows deployment to proceed while investigating proper escaping |
+
+**Escalation Criteria**:
+- If still blocked by EOD Nov 11 → Escalate to Project Manager (Agent Zero)
+- If fallback fails → Rollback to Phase 1 state, schedule architecture review
+- If database connectivity suspected → Re-engage Quinn Davis
+
 ---
 
 ### Issue 2: Multiple Database User Attempts
@@ -927,12 +1142,35 @@ sudo systemctl status n8n
 5. ✅ **agent0** - Infrastructure admin account (correct usage for administration)
 6. ✅ **www-data** - Nginx web server account (correct usage for proxy)
 
-### ⚠️ Issues to Address
+### ⚠️ Issues to Address - SLA Tracking
+
+| Priority | Action Item | Owner | Due Date | Status | Notes |
+|----------|-------------|-------|----------|--------|-------|
+| **P0** 🔴 | Debug N8N env var loading | Omar Rodriguez | 2025-11-11 EOD | 🔴 BLOCKED | Primary blocker - investigate dotenv library behavior |
+| **P0** ⏳ | Try URL-encoded password (`Major8859%21`) | Omar Rodriguez | 2025-11-10 EOD | ⏳ TODO | Quick test - may resolve special char issue |
+| **P0** ⏳ | Try connection string format | Omar Rodriguez | 2025-11-10 EOD | ⏳ TODO | Alternative to individual DB env vars |
+| **P0** ⏳ | Test simplified password (no special chars) | Omar Rodriguez | 2025-11-10 EOD | ⏳ TODO | Diagnostic test - temporary workaround |
+| **P0** ⏳ | Enable N8N debug logging (`N8N_LOG_LEVEL=debug`) | Omar Rodriguez | 2025-11-10 EOD | ⏳ TODO | Increase visibility into env loading |
+| **P1** ⚠️ | Escalate to William Taylor if not resolved | Omar Rodriguez | 2025-11-11 EOD | ⏳ PENDING | Trigger: If P0 items don't resolve issue |
+| **P2** 📋 | Fix home directory mismatch (`/home/n8n` → `/opt/n8n`) | William Taylor | 2025-11-15 | 📋 OPTIONAL | Cosmetic only, service works |
+
+**Priority Definitions**:
+- **P0**: Deployment blocker - Must resolve to proceed with Phase 2
+- **P1**: Escalation path - Trigger if P0 unresolved
+- **P2**: Nice-to-have - Cosmetic/optimization
+
+**Status Legend**:
+- 🔴 BLOCKED: Active investigation, no workaround yet
+- ⏳ TODO: Planned action, not started
+- ⏳ PENDING: Conditional trigger
+- 📋 OPTIONAL: Low-impact improvement
+
+### Detailed Issue Descriptions
 
 1. ⚠️ **HIGH PRIORITY**: N8N service authentication failure
    - **Cause**: Environment variable loading issue, NOT database issue
    - **Owner**: Omar Rodriguez (application layer)
-   - **Next Steps**: Debug .env loading, try URL encoding, test simplified password
+   - **Next Steps**: See P0 action items in SLA table above
 
 2. ⚠️ **LOW PRIORITY**: Home directory mismatch
    - **Issue**: n8n user has /home/n8n instead of /opt/n8n
@@ -974,8 +1212,28 @@ created: 2025-11-08
 last_updated: 2025-11-08
 status: Active Reference
 version: 1.0
-classification: Internal
+classification: CONFIDENTIAL
 location: /srv/cc/Governance/x-poc3-n8n-deployment/ACCOUNTS-REQUIRED.md
+
+access_control:
+  classification: CONFIDENTIAL
+  authorized_readers:
+    - N8N Deployment Team (Omar Rodriguez, Quinn Davis)
+    - Infrastructure Administrators (William Taylor)
+    - Database Administrators (Quinn Davis)
+    - Security Team (audit purposes)
+  distribution_restrictions:
+    - Internal use only within Hana-X Infrastructure Team
+    - No external sharing without Project Lead approval
+    - Encrypted channels required for transmission
+    - Do NOT commit credentials to version control
+  credential_rotation_interval: 90 days
+  next_rotation_due: 2026-02-08
+  rotation_triggers:
+    - Team member departure
+    - Suspected compromise or breach
+    - Security incident
+    - Compliance audit requirement
 
 accounts_documented:
   system_users: 6

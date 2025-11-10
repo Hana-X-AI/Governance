@@ -249,6 +249,70 @@ Missing deliverables checklist creates:
 | Certificate file paths | Frank | William | Absolute paths for Nginx config |
 | Nginx reload confirmation | William | Frank | `systemctl status nginx` showing active |
 
+### Error Handling & Escalation
+
+**Added per CodeRabbit recommendation** to address error scenario ownership boundaries:
+
+| Error Scenario | Primary Owner | Detection Method | Escalation Path | Resolution Owner |
+|----------------|---------------|------------------|-----------------|------------------|
+| **Certificate generation fails** | Frank | Samba CA command error, no .crt file created | Frank → Agent Zero | Frank (retry cert generation) |
+| **Certificate file permissions wrong** | Frank | William detects during Nginx config test: `nginx -t` fails with permission denied | William → Frank | Frank (fix permissions: `chmod 644 /etc/ssl/certs/n8n.crt && chmod 600 /etc/ssl/private/n8n.key`) |
+| **Certificate file not found** | Frank | William detects during Nginx config test: `nginx -t` fails with "No such file or directory" | William → Frank | Frank (verify cert delivery, regenerate if needed) |
+| **Nginx config syntax error** | William | `nginx -t` fails with syntax error | William (self-resolve) | William (fix config syntax) |
+| **Nginx reload fails** | William | `systemctl reload nginx` returns non-zero, or `systemctl status nginx` shows failed | William → Agent Zero | William (rollback config, diagnose, retry) |
+| **SSL handshake fails** | William | `curl -v https://n8n.hx.dev.local` shows SSL error, or `openssl s_client` fails | William → Frank | Frank (verify cert validity), William (verify Nginx SSL config) |
+| **Certificate/Nginx mismatch** | William | Nginx serves wrong cert, or cert doesn't match domain | William → Frank | Frank (regenerate cert with correct CN), William (update Nginx config) |
+
+**Error Handling Protocols**:
+
+1. **Frank's Error Responsibility** (Certificate Generation Phase):
+   - **Self-Resolve**: Certificate generation retries (transient Samba CA issues)
+   - **Escalate to Agent Zero**: Persistent Samba CA failures (>3 retries), infrastructure issues
+   - **Coordinate with William**: Certificate delivered but rejected by Nginx (permissions, format, validity)
+
+2. **William's Error Responsibility** (Nginx Configuration Phase):
+   - **Self-Resolve**: Nginx syntax errors, configuration adjustments
+   - **Escalate to Frank**: Certificate file issues (permissions, not found, invalid format)
+   - **Escalate to Agent Zero**: Nginx service failures, systemd issues, persistent reload failures
+
+3. **Wait-or-Rollback Decision Matrix**:
+
+   | Scenario | Frank Action | William Action | Coordination |
+   |----------|--------------|----------------|--------------|
+   | **Nginx config fails to reload (line 250)** | **WAIT** - Do not rollback cert | **ROLLBACK** - Revert Nginx config to last known good | William notifies Frank when ready for retry |
+   | **Cert file permissions wrong (line 229)** | **FIX IMMEDIATELY** - Correct permissions | **WAIT** - Do not proceed with config | Frank notifies William when permissions fixed |
+   | **Cert validation fails** | **REGENERATE** - Create new cert | **WAIT** - Use HTTP fallback if critical | Frank notifies William when new cert ready |
+   | **SSL handshake fails post-deployment** | **INVESTIGATE** - Verify cert validity | **ROLLBACK** - Disable HTTPS temporarily if critical service | Both coordinate on root cause before retry |
+
+4. **Silent Failure Prevention**:
+   - **Mandatory Validation Steps**:
+     - Frank MUST verify: `openssl x509 -in /etc/ssl/certs/n8n.crt -text -noout` (cert readable)
+     - Frank MUST verify: `ls -la /etc/ssl/certs/n8n.crt /etc/ssl/private/n8n.key` (correct permissions)
+     - William MUST verify: `nginx -t` (config syntax valid)
+     - William MUST verify: `curl -k https://localhost` (Nginx serving content)
+     - William MUST verify: `openssl s_client -connect localhost:443` (SSL handshake works)
+
+   - **Handoff Checkpoints** (no silent failures):
+     - **Checkpoint 1** (Frank → William): Frank confirms cert files exist with correct permissions before William starts
+     - **Checkpoint 2** (William → Frank): William confirms Nginx reload successful before marking complete
+     - **Checkpoint 3** (William): William performs end-to-end HTTPS test before sign-off
+
+5. **Escalation Triggers**:
+   - **To Agent Zero**:
+     - Any error unresolved after 30 minutes
+     - Errors requiring cross-agent coordination (both Frank and William blocked)
+     - Infrastructure issues beyond single agent scope (Samba DC down, Nginx package issues)
+   - **To User**:
+     - Production service impact (N8N unavailable)
+     - Decision required (rollback vs continue troubleshooting)
+
+**Rationale for Error Handling Design**:
+- **Clear Primary Ownership**: Each error has one primary owner to prevent "not my job" scenarios
+- **Detection Method**: Explicit commands/tests to catch errors (no silent failures)
+- **Escalation Path**: Clear who to contact when self-resolution fails
+- **Wait-or-Rollback Matrix**: Decision framework prevents ambiguity in error scenarios
+- **Validation Checkpoints**: Mandatory checks at handoff points catch errors early
+
 ---
 
 ## Benefits Summary
@@ -342,3 +406,24 @@ Missing deliverables checklist creates:
 **Completeness**: COMPREHENSIVE (all missing detail added)
 **Organization**: CLEAR (ownership boundaries defined)
 **Phase 4 Readiness**: IMPROVED (resource planning enabled)
+
+---
+
+## Review History
+
+This remediation was reviewed by CodeRabbit AI on 2025-11-10. The review identified a concern about error handling ownership boundaries in Fix #3 (SSL Certificate Deployment coordination between Frank and William).
+
+**Key Concerns Addressed**:
+- **Error handling ownership boundaries** (lines 252-315)
+  - Wait-or-rollback decision matrix (lines 278-285)
+  - Silent failure prevention mechanisms (lines 287-298)
+  - Escalation triggers and protocols (lines 300-307)
+
+**CodeRabbit Positive Acknowledgments**:
+- ✅ Fix #1 effectively transforms vague "DEPLOY-002 deferred" into concrete "10 psql commands"
+- ✅ Fix #2 parallel work context valuable for Phase 4 sprint planning (40-50% timeline compression)
+- ✅ Fix #3 ownership boundaries clean for happy path (now enhanced with error scenarios)
+
+**Review Status**: ✅ **ALL CONCERNS ADDRESSED**
+
+**Full Review Discussion**: See `reviews/deploy-fixes-coderabbit-2025-11-10.md` for complete CodeRabbit review narrative, detailed response analysis, and impact assessment.

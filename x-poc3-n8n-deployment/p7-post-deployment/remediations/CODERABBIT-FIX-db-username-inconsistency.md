@@ -155,12 +155,13 @@ COMMENT ON ROLE n8n_user IS 'n8n application database user - POC3';
 
 **AFTER**:
 ```sql
-CREATE USER svc-n8n WITH PASSWORD 'Major8859';  -- URL-safe password (no special chars)
-GRANT CONNECT ON DATABASE n8n_poc3 TO svc-n8n;
-COMMENT ON ROLE svc-n8n IS 'n8n application database service account - POC3';
+CREATE USER "svc-n8n" WITH PASSWORD 'Major8859';  -- URL-safe password (no special chars)
+GRANT CONNECT ON DATABASE n8n_poc3 TO "svc-n8n";
+COMMENT ON ROLE "svc-n8n" IS 'n8n application database service account - POC3';
 
 -- Note: Username follows organizational convention: svc-{application}
 -- Password is URL-safe (alphanumeric only) to prevent connection string encoding issues
+-- Note: Identifier quoted due to hyphen in username
 ```
 
 **Update environment variable references**:
@@ -283,13 +284,14 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO n8n_user;
 
 **AFTER**:
 ```sql
-CREATE USER svc-n8n WITH PASSWORD 'Major8859';  -- URL-safe password
-GRANT CONNECT ON DATABASE n8n_poc3 TO svc-n8n;
-GRANT CREATE ON DATABASE n8n_poc3 TO svc-n8n;
-GRANT ALL PRIVILEGES ON SCHEMA public TO svc-n8n;
+CREATE USER "svc-n8n" WITH PASSWORD 'Major8859';  -- URL-safe password
+GRANT CONNECT ON DATABASE n8n_poc3 TO "svc-n8n";
+GRANT CREATE ON DATABASE n8n_poc3 TO "svc-n8n";
+GRANT ALL PRIVILEGES ON SCHEMA public TO "svc-n8n";
 
 -- Service account naming convention: svc-{application}
 -- URL-safe password prevents connection string encoding issues
+-- Note: Identifier quoted due to hyphen in username
 ```
 
 **Update all psql command examples**:
@@ -430,7 +432,7 @@ echo "=== Verification Complete ==="
 
 **Example**:
 ```sql
-CREATE USER svc-n8n WITH PASSWORD 'Major8859';
+CREATE USER "svc-n8n" WITH PASSWORD 'Major8859';
 ```
 
 **Prohibited**:
@@ -439,7 +441,7 @@ CREATE USER svc-n8n WITH PASSWORD 'Major8859';
 CREATE USER n8n_user WITH PASSWORD 'password123';
 
 -- WRONG - Special characters in password
-CREATE USER svc-n8n WITH PASSWORD 'Major8859!@#';
+CREATE USER "svc-n8n" WITH PASSWORD 'Major8859!@#';
 ```
 
 **Migration from Legacy Naming**:

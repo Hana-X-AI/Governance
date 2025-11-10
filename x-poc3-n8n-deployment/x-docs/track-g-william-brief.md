@@ -45,8 +45,22 @@ DETAILED REQUIREMENTS:
    d) SSL certificate paths FROM TRACK F HANDOFF
    e) WebSocket upgrade headers (required for n8n real-time features)
    f) Security headers (X-Real-IP, X-Forwarded-For, X-Forwarded-Proto)
-5. Enable site: sudo ln -s /etc/nginx/sites-available/n8n.conf /etc/nginx/sites-enabled/
+5. Enable site: sudo ln -sf /etc/nginx/sites-available/n8n.conf /etc/nginx/sites-enabled/
 6. Test configuration syntax: sudo nginx -t
+   
+   **If validation fails, troubleshoot**:
+   - Read the exact syntax error (nginx -t reports file and line number)
+   - Check Nginx error logs: `sudo tail -n 50 /var/log/nginx/error.log`
+   - Verify included files for:
+     - Missing semicolons (`;`) at end of directives
+     - Mismatched braces (`{` `}`)
+     - Invalid file paths (SSL certs, includes)
+   - Dump full processed config: `sudo nginx -T` (capital T)
+   - Test with explicit config: `sudo nginx -c /etc/nginx/nginx.conf -t`
+   - Check service status: `sudo systemctl status nginx`
+   - Verify file permissions (config files readable by nginx user)
+   - Re-test after fixes: `sudo nginx -t`
+
 7. **DO NOT START NGINX YET** (n8n application not running in Phase 2)
 8. Document configuration for Phase 3 startup
 

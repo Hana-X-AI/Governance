@@ -95,6 +95,27 @@ fi
 
 **Total**: 17 automated checks covering all 26 manual checklist items
 
+**Coverage Mapping** (Automated Check → Manual Checklist Items):
+
+| Automated Check | Maps to Manual Items | Rationale |
+|-----------------|----------------------|-----------|
+| `lsb_release -cs` | OS version | Direct version verification |
+| `df -BG /opt/n8n` | Disk space (20GB min) | Storage availability check |
+| `df -i /opt/n8n` | Inode availability (100K min) | Filesystem capacity |
+| `free -g` | RAM (4GB min) | Memory availability |
+| `id n8n` | n8n user exists | User account verification |
+| `stat /opt/n8n` | Directory ownership | Permission validation |
+| `command -v node` | Node.js installed | Binary existence |
+| `node --version` | Node.js version ≥22.16.0 | Version compatibility |
+| `command -v pnpm` | pnpm installed | Package manager |
+| `command -v gcc/g++/make` | Build tools (5 checks) | Compilation toolchain |
+| `command -v python3/git/curl/rsync/pkg-config` | System utilities (5 checks) | Support tools |
+| `ulimit -n` | File descriptor limit ≥65536 | Resource limits |
+| `lsof -i :5678` | Port 5678 availability | Network port check |
+| `dig registry.npmjs.org` | DNS resolution | Network connectivity |
+
+**Implementation Note**: When implementing the actual script, ensure each automated check includes a code comment referencing its corresponding manual checklist item(s) from Task T-033 for traceability.
+
 #### 3. Idempotent and Safe
 ```bash
 set -euo pipefail  # Fail fast on errors
@@ -381,8 +402,10 @@ verify_prerequisites:
   script:
     - ssh agent0@hx-n8n-server.hx.dev.local 'bash /opt/n8n/scripts/pre-build-check.sh'
   artifacts:
-    reports:
-      junit: /opt/n8n/logs/pre-build-check-*.log
+    when: always
+    paths:
+      - /opt/n8n/logs/pre-build-check-*.log
+    expire_in: 7 days
   only:
     - main
 
@@ -394,6 +417,43 @@ build_n8n:
   only:
     - main
 ```
+
+**SSH Setup Requirements**:
+
+For CI/CD integration, the GitLab runner must have:
+
+1. **SSH Key Access**:
+   ```bash
+   # On GitLab runner or CI/CD server
+   ssh-keygen -t ed25519 -C "gitlab-runner@ci-server"
+
+   # Copy public key to target server
+   ssh-copy-id agent0@hx-n8n-server.hx.dev.local
+
+   # Verify passwordless access
+   ssh agent0@hx-n8n-server.hx.dev.local 'echo "SSH access verified"'
+   ```
+
+2. **GitLab CI Variables** (Settings → CI/CD → Variables):
+   - `SSH_PRIVATE_KEY`: Private key for agent0 user (masked, protected)
+   - `N8N_SERVER_HOST`: Target hostname (default: `hx-n8n-server.hx.dev.local`)
+   - `N8N_SERVER_USER`: SSH user (default: `agent0`)
+
+3. **Local Deployment Template**:
+   ```yaml
+   # For non-Hana-X deployments, customize:
+   verify_prerequisites:
+     script:
+       - ssh $N8N_SERVER_USER@$N8N_SERVER_HOST 'bash /opt/n8n/scripts/pre-build-check.sh'
+   ```
+
+4. **Security Notes**:
+   - Use SSH key authentication (never passwords in CI/CD)
+   - Restrict agent0 sudo access to only required commands
+   - Consider dedicated CI/CD service account with limited permissions
+   - Rotate SSH keys quarterly in production environments
+
+**Artifact Format Note**: The script outputs human-readable text logs (not JUnit XML). GitLab artifacts are stored as text files (`paths:`) for manual review, not parsed as test reports (`junit:`). This format is appropriate for infrastructure verification checks.
 
 ---
 

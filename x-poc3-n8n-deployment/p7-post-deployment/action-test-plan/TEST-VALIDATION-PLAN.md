@@ -14,22 +14,38 @@
 This test and validation plan ensures all 18 actions in the Consolidated Action Plan v3.1 are properly tested, validated, and verified before sign-off. The plan covers:
 
 - **18 Actions**: ACTION-001 through ACTION-017 (006A/006B split)
+- **144 Total Test Cases**: Detailed breakdown prevents v1.0 test inflation issue
 - **58-62 hours** of remediation work requiring validation
 - **51 CodeRabbit remediation documents** mapped via traceability matrix
 - **7 original deployment defects** requiring regression testing
 - **3.5-4 week execution timeline** with parallel and sequential testing
 
+**Test Scope Clarity** (prevents v1.0-style inflation from 96→214):
+- **v1.0 Problem**: Test count inflated from 96 to 214 by counting sub-criteria as separate tests
+- **v1.1 Fix**: Clear categorization with explicit test IDs and no double-counting
+- **Total = 144 tests**: 96 unit (TC-001 to TC-096) + 10 integration (INT-001 to INT-010) + 12 compliance (COMP-001 to COMP-012) + 18 performance (PERF-001 to PERF-018) + 8 documentation (DOC-001 to DOC-008)
+- **Automation = 19 tests (13%)**: Subset within categories above, not additional tests
+
 ### Test Strategy Overview
 
 | Test Type | Test Cases | Coverage | Automation |
 |-----------|------------|----------|------------|
-| **Unit Testing** | 96 detailed | Individual action validation | Manual |
-| **Integration Testing** | 10 scenarios | Cross-action dependencies | Manual |
-| **Regression Testing** | Automated suite | Original defects + CodeRabbit findings | 15 automated |
-| **Compliance Testing** | 12 checks | PCI-DSS, SOC 2, NIST standards | 3 automated |
-| **Performance Testing** | 18 actions | Time estimate validation | Manual tracking |
-| **Documentation Testing** | 8 quality checks | Consistency and accuracy | 1 automated |
-| **Total** | **96 test cases + automated suite** | **100% action coverage** | **12% automation** |
+| **Unit Testing** | 96 detailed test cases (TC-001 to TC-096) | Individual action validation | Manual |
+| **Integration Testing** | 10 scenarios (INT-001 to INT-010) | Cross-action dependencies | Manual |
+| **Regression Testing** | 15 automated checks (subset of above) | Original defects + CodeRabbit findings | 15 automated |
+| **Compliance Testing** | 12 checks (COMP-001 to COMP-012) | PCI-DSS, SOC 2, NIST standards | 3 automated |
+| **Performance Testing** | 18 actions (PERF-001 to PERF-018) | Time estimate validation | Manual tracking |
+| **Documentation Testing** | 8 quality checks (DOC-001 to DOC-008) | Consistency and accuracy | 1 automated |
+| **Total** | **144 total test cases** | **100% action coverage** | **19 automated (13%)** |
+
+**Test Count Clarification**:
+- **144 total executable tests**: 96 unit + 10 integration + 12 compliance + 18 performance + 8 documentation
+- **19 automated tests** (13% of total): Subset of categories above that support automation
+  - 15 regression tests (automated checks of original defects + CodeRabbit findings)
+  - 3 compliance tests (automated security/standards validation)
+  - 1 documentation test (automated consistency check)
+- **125 manual tests** (87% of total): Remaining tests requiring human validation
+- **Note**: Automated tests are not additional to the above categories - they are automated implementations of specific tests within Unit, Compliance, and Documentation categories
 
 ### Success Criteria
 

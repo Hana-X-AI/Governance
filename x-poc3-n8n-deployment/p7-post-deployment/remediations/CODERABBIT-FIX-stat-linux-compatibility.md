@@ -208,10 +208,7 @@ fi
 
 **Lines 426-432 in OMAR-REVIEW.md - Replace with**:
 
-```bash
-# Recommendation: Add log rotation awareness
-
-**Add to T-020** (Clone Repository):
+### Recommendation: Add log rotation awareness to T-020 (Clone Repository)
 
 ```bash
 # Before cloning, check if previous build logs exist and are large
@@ -228,11 +225,11 @@ git clone --depth 1 --branch v1.118.2 https://github.com/n8n-io/n8n.git /srv/n8n
 ```
 
 **Rationale**:
+
 - Uses Linux-compatible `stat -c%s` syntax
 - Automatically archives logs >100MB before new build
 - Prevents disk space issues from accumulated build logs
 - Compresses old logs to save space
-```
 
 ---
 

@@ -353,23 +353,82 @@ sudo chmod 600 /etc/ssl/private/wildcard.hx.dev.local.key
 
 **Generate Self-Signed Certificate on Target Server**:
 
+**Option 1: RSA 4096-bit (Strong RSA, widely compatible)**:
+
 ```bash
 # SSH to target server (e.g., hx-n8n-server)
 ssh administrator@192.168.10.215
 
-# Generate self-signed certificate (365-day validity)
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+# Generate self-signed certificate with RSA 4096-bit key (365-day validity)
+# Note: -nodes flag leaves private key unencrypted on disk
+#       Acceptable for automated server use ONLY with restricted file system access
+#       For production, use CA-signed certificate instead of self-signed
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
   -keyout /etc/ssl/private/n8n.hx.dev.local.key \
   -out /etc/ssl/certs/n8n.hx.dev.local.crt \
   -subj "/C=US/ST=Development/L=Dev/O=Hana-X/OU=Infrastructure/CN=n8n.hx.dev.local"
 
-# Set permissions
+# Set secure permissions (CRITICAL - protects unencrypted private key)
 sudo chmod 600 /etc/ssl/private/n8n.hx.dev.local.key
+sudo chown root:root /etc/ssl/private/n8n.hx.dev.local.key
 sudo chmod 644 /etc/ssl/certs/n8n.hx.dev.local.crt
 
-# Verify
-sudo openssl x509 -in /etc/ssl/certs/n8n.hx.dev.local.crt -noout -subject -dates
+# Verify certificate
+sudo openssl x509 -in /etc/ssl/certs/n8n.hx.dev.local.crt -noout -subject -dates -text | grep -E "Subject:|Not|Public-Key"
 ```
+
+**Option 2: ECDSA P-384 (Modern, smaller keys, better performance)**:
+
+```bash
+# SSH to target server
+ssh administrator@192.168.10.215
+
+# Generate ECDSA P-384 self-signed certificate (365-day validity)
+# Note: -nodes flag leaves private key unencrypted on disk
+#       Acceptable for automated server use ONLY with restricted file system access
+#       For production, use CA-signed certificate instead of self-signed
+sudo openssl req -x509 -nodes -days 365 -newkey ec \
+  -pkeyopt ec_paramgen_curve:secp384r1 \
+  -keyout /etc/ssl/private/n8n.hx.dev.local.key \
+  -out /etc/ssl/certs/n8n.hx.dev.local.crt \
+  -subj "/C=US/ST=Development/L=Dev/O=Hana-X/OU=Infrastructure/CN=n8n.hx.dev.local"
+
+# Set secure permissions (CRITICAL - protects unencrypted private key)
+sudo chmod 600 /etc/ssl/private/n8n.hx.dev.local.key
+sudo chown root:root /etc/ssl/private/n8n.hx.dev.local.key
+sudo chmod 644 /etc/ssl/certs/n8n.hx.dev.local.crt
+
+# Verify certificate
+sudo openssl x509 -in /etc/ssl/certs/n8n.hx.dev.local.crt -noout -subject -dates -text | grep -E "Subject:|Not|Public-Key"
+```
+
+**Key Algorithm Comparison**:
+
+| Algorithm | Key Size | Security Level | Performance | Compatibility | Recommendation |
+|-----------|----------|----------------|-------------|---------------|----------------|
+| RSA 2048 | 2048 bits | ⚠️ Adequate (legacy) | Slower | Universal | ❌ Not recommended (use 3072+ or ECDSA) |
+| RSA 3072 | 3072 bits | ✅ Strong | Slower | Universal | ✅ Good for high compatibility needs |
+| RSA 4096 | 4096 bits | ✅ Very Strong | Slowest | Universal | ✅ Best for RSA (long-term security) |
+| ECDSA P-256 | 256 bits | ✅ Strong (equiv to RSA 3072) | Fastest | Modern browsers/servers | ✅ Good balance |
+| ECDSA P-384 | 384 bits | ✅ Very Strong (equiv to RSA 7680) | Very Fast | Modern browsers/servers | ✅ **Recommended** for new deployments |
+
+**Security Notes**:
+
+⚠️ **`-nodes` Flag Warning**:
+- The `-nodes` (no DES) flag creates an **unencrypted private key** on disk
+- **Risk**: Anyone with file system access can read the private key in plaintext
+- **When acceptable**: Automated server use where:
+  - File permissions are strictly controlled (`chmod 600`, `chown root:root`)
+  - Server requires automatic startup without passphrase prompt
+  - Physical/VM access is restricted to authorized administrators
+- **NOT acceptable**: Shared systems, untrusted administrators, or compliance environments requiring encrypted keys at rest
+
+🔒 **Production Recommendations**:
+- **Use CA-signed certificates** (Let's Encrypt, internal CA, commercial CA) instead of self-signed
+- **Rotate certificates** before expiration (365 days = annual rotation required)
+- **Monitor expiration**: Set calendar reminder for 30 days before expiry
+- **Use encrypted keys** for highly sensitive environments (requires manual passphrase entry on service start)
+- **Hardware Security Modules (HSM)**: For production, consider storing keys in HSM/TPM instead of filesystem
 
 **Trust Self-Signed Certificate** (client workstations):
 
@@ -677,23 +736,226 @@ sudo openssl x509 -in /etc/ssl/certs/n8n.hx.dev.local.crt -noout -checkend 25920
 # Exit 1: Expires within 30 days
 ```
 
-**Automated Monitoring Script** (optional):
+**Automated Monitoring Script** (production-ready with retry and notifications):
 
 ```bash
 #!/bin/bash
 # /usr/local/bin/check-ssl-expiry.sh
+#
+# Robust SSL certificate expiry checker with:
+# - Retry logic with exponential backoff
+# - Portable date comparison (no arithmetic)
+# - Real notification mechanism
+# - Clear logging for each attempt
+# - Nonzero exit only after retries exhausted
 
+set -euo pipefail
+
+# Configuration
 CERT_PATH="/etc/ssl/certs/n8n.hx.dev.local.crt"
 WARN_DAYS=30
+MAX_RETRIES=3
+RETRY_DELAY=2  # Initial delay in seconds (exponential backoff)
 
-if ! openssl x509 -in "$CERT_PATH" -noout -checkend $((WARN_DAYS * 86400)); then
-    echo "WARNING: Certificate expires within $WARN_DAYS days"
-    # Send alert (email, Slack, PagerDuty)
-    exit 1
-fi
+# Notification function - customize for your environment
+send_alert() {
+    local message="$1"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    # Log to syslog
+    logger -t ssl-expiry-check -p user.warning "$message"
+    
+    # Option 1: Email notification (requires mailutils/sendmail)
+    if command -v mail >/dev/null 2>&1; then
+        echo "$message" | mail -s "[SSL Alert] Certificate Expiry Warning" admin@hana-x.ai
+    fi
+    
+    # Option 2: Slack webhook (requires curl and SLACK_WEBHOOK_URL env var)
+    if [ -n "${SLACK_WEBHOOK_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+        curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🔒 SSL Alert: $message\"}" \
+            "$SLACK_WEBHOOK_URL" 2>/dev/null || true
+    fi
+    
+    # Option 3: PagerDuty Events API (requires curl and PAGERDUTY_INTEGRATION_KEY)
+    if [ -n "${PAGERDUTY_INTEGRATION_KEY:-}" ] && command -v curl >/dev/null 2>&1; then
+        curl -X POST https://events.pagerduty.com/v2/enqueue \
+            -H 'Content-Type: application/json' \
+            -d "{
+                \"routing_key\": \"$PAGERDUTY_INTEGRATION_KEY\",
+                \"event_action\": \"trigger\",
+                \"payload\": {
+                    \"summary\": \"SSL Certificate Expiry Warning\",
+                    \"severity\": \"warning\",
+                    \"source\": \"$(hostname)\",
+                    \"custom_details\": {\"message\": \"$message\"}
+                }
+            }" 2>/dev/null || true
+    fi
+    
+    # Option 4: Simple file-based alert (always works)
+    echo "[$timestamp] $message" >> /var/log/ssl-alerts.log
+}
 
-echo "Certificate valid for more than $WARN_DAYS days"
-exit 0
+# Extract and compare expiry date (portable, no arithmetic)
+check_certificate_expiry() {
+    local attempt=$1
+    
+    echo "[Attempt $attempt/$MAX_RETRIES] Checking certificate: $CERT_PATH"
+    
+    # Verify certificate file exists and is readable
+    if [ ! -f "$CERT_PATH" ]; then
+        echo "ERROR: Certificate file not found: $CERT_PATH"
+        return 1
+    fi
+    
+    if [ ! -r "$CERT_PATH" ]; then
+        echo "ERROR: Certificate file not readable: $CERT_PATH"
+        return 1
+    fi
+    
+    # Extract expiry date from certificate (retry-safe operation)
+    local cert_enddate
+    if ! cert_enddate=$(openssl x509 -in "$CERT_PATH" -noout -enddate 2>&1); then
+        echo "ERROR: Failed to read certificate expiry date: $cert_enddate"
+        return 1
+    fi
+    
+    # Parse expiry date (format: "notAfter=Nov 10 12:34:56 2026 GMT")
+    local expiry_date_str
+    expiry_date_str=$(echo "$cert_enddate" | sed 's/notAfter=//')
+    
+    # Convert to epoch seconds for comparison (portable across Linux/macOS)
+    local expiry_epoch
+    if ! expiry_epoch=$(date -d "$expiry_date_str" +%s 2>/dev/null); then
+        # macOS fallback (uses -j -f for date parsing)
+        if ! expiry_epoch=$(date -j -f "%b %d %H:%M:%S %Y %Z" "$expiry_date_str" +%s 2>/dev/null); then
+            echo "ERROR: Failed to parse expiry date: $expiry_date_str"
+            return 1
+        fi
+    fi
+    
+    # Calculate warning threshold (current time + WARN_DAYS)
+    local warn_epoch
+    if ! warn_epoch=$(date -d "+${WARN_DAYS} days" +%s 2>/dev/null); then
+        # macOS fallback
+        if ! warn_epoch=$(date -v+${WARN_DAYS}d +%s 2>/dev/null); then
+            echo "ERROR: Failed to calculate warning threshold"
+            return 1
+        fi
+    fi
+    
+    # Current time
+    local current_epoch
+    current_epoch=$(date +%s)
+    
+    # Calculate days until expiry
+    local days_until_expiry
+    days_until_expiry=$(( (expiry_epoch - current_epoch) / 86400 ))
+    
+    echo "Certificate expires: $expiry_date_str"
+    echo "Days until expiry: $days_until_expiry"
+    
+    # Check if certificate expires within warning period
+    if [ "$expiry_epoch" -le "$warn_epoch" ]; then
+        local warning_msg="⚠️  WARNING: Certificate at $CERT_PATH expires in $days_until_expiry days (threshold: $WARN_DAYS days)"
+        echo "$warning_msg"
+        send_alert "$warning_msg"
+        return 2  # Special return code for expiry warning
+    fi
+    
+    # Check if certificate already expired
+    if [ "$expiry_epoch" -le "$current_epoch" ]; then
+        local expired_msg="🔴 CRITICAL: Certificate at $CERT_PATH has EXPIRED (expired $((current_epoch - expiry_epoch)) seconds ago)"
+        echo "$expired_msg"
+        send_alert "$expired_msg"
+        return 3  # Special return code for already expired
+    fi
+    
+    echo "✅ Certificate valid for $days_until_expiry days (threshold: $WARN_DAYS days)"
+    return 0
+}
+
+# Main execution with retry logic
+main() {
+    local attempt=1
+    local delay=$RETRY_DELAY
+    
+    while [ $attempt -le $MAX_RETRIES ]; do
+        if check_certificate_expiry "$attempt"; then
+            # Success - certificate valid
+            echo "Check completed successfully"
+            exit 0
+        fi
+        
+        local exit_code=$?
+        
+        # Exit codes 2 and 3 are valid results (expiry warning/expired)
+        # Don't retry these - they're accurate results, not transient errors
+        if [ $exit_code -eq 2 ] || [ $exit_code -eq 3 ]; then
+            echo "Certificate expiry detected (not a transient error)"
+            exit 1
+        fi
+        
+        # Transient error (file access, OpenSSL failure, date parsing)
+        # Retry with exponential backoff
+        if [ $attempt -lt $MAX_RETRIES ]; then
+            echo "Transient error detected, retrying in ${delay}s..."
+            sleep $delay
+            delay=$((delay * 2))  # Exponential backoff: 2s, 4s, 8s
+            attempt=$((attempt + 1))
+        else
+            echo "ERROR: All $MAX_RETRIES attempts failed"
+            send_alert "🔴 CRITICAL: SSL expiry check failed after $MAX_RETRIES attempts for $CERT_PATH"
+            exit 1
+        fi
+    done
+}
+
+# Execute main function
+main
+```
+
+**Configuration Examples**:
+
+```bash
+# Set environment variables for notifications (add to /etc/environment or systemd service)
+
+# Slack webhook (create webhook at: https://api.slack.com/messaging/webhooks)
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# PagerDuty integration key (create integration at: https://support.pagerduty.com/docs/services-and-integrations)
+export PAGERDUTY_INTEGRATION_KEY="your-integration-key-here"
+
+# Email notification (requires mailutils: sudo apt-get install mailutils)
+# Configured via send_alert function above
+```
+
+**Testing the Script**:
+
+```bash
+# Test with a certificate that's about to expire (30 days threshold)
+sudo /usr/local/bin/check-ssl-expiry.sh
+
+# Expected output:
+# [Attempt 1/3] Checking certificate: /etc/ssl/certs/n8n.hx.dev.local.crt
+# Certificate expires: Nov 10 12:34:56 2026 GMT
+# Days until expiry: 365
+# ✅ Certificate valid for 365 days (threshold: 30 days)
+# Check completed successfully
+
+# Test retry logic by making certificate temporarily unreadable
+sudo chmod 000 /etc/ssl/certs/n8n.hx.dev.local.crt
+sudo /usr/local/bin/check-ssl-expiry.sh
+# Expected: 3 retry attempts with exponential backoff (2s, 4s, 8s)
+
+# Restore permissions
+sudo chmod 644 /etc/ssl/certs/n8n.hx.dev.local.crt
+
+# Test with expired certificate warning (lower WARN_DAYS threshold)
+sudo bash -c 'WARN_DAYS=400 /usr/local/bin/check-ssl-expiry.sh'
+# Expected: Warning message if certificate expires in < 400 days
 ```
 
 **Cron Job for Daily Checks**:

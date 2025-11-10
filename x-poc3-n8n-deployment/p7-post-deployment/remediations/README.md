@@ -35,22 +35,54 @@ Automation blockers and compatibility issues:
 - `CODERABBIT-FIX-signoff-db-interactive-credentials.md` - Interactive psql prompts
 - `CODERABBIT-FIX-ssl-transfer-error-handling.md` - SSL transfer missing error handling
 
-### Medium Priority - Improvements (15+ documents)
+### Medium Priority - Improvements (26 documents)
 Security enhancements and documentation quality:
 
-- `CODERABBIT-FIX-db-username-inconsistency.md` - Database username standardization
-- `CODERABBIT-FIX-issues-log-test-credentials.md` - Test user credentials
-- `CODERABBIT-FIX-william-exit-codes.md` - CI/CD warning gates
-- `CODERABBIT-FIX-env-template-security.md` - .env template security guidance
-- [... and more]
+- [`CODERABBIT-FIX-db-username-inconsistency.md`](./CODERABBIT-FIX-db-username-inconsistency.md) - Database username standardization
+- [`CODERABBIT-FIX-issues-log-test-credentials.md`](./CODERABBIT-FIX-issues-log-test-credentials.md) - Test user credentials
+- [`CODERABBIT-FIX-william-exit-codes.md`](./CODERABBIT-FIX-william-exit-codes.md) - CI/CD warning gates
+- [`CODERABBIT-FIX-env-template-security.md`](./CODERABBIT-FIX-env-template-security.md) - .env template security guidance
+- [`CODERABBIT-FIX-frank-identity-ssl-credentials.md`](./CODERABBIT-FIX-frank-identity-ssl-credentials.md) - Frank's identity and SSL credentials
+- [`CODERABBIT-FIX-specification-gaps-blocker-contradiction.md`](./CODERABBIT-FIX-specification-gaps-blocker-contradiction.md) - Specification gaps and blocker contradictions
+- [`CODERABBIT-FIX-samuel-redis-decision-point.md`](./CODERABBIT-FIX-samuel-redis-decision-point.md) - Redis decision point guidance
+- [`CODERABBIT-FIX-specification-version-drift.md`](./CODERABBIT-FIX-specification-version-drift.md) - Version drift in specifications
+- [`CODERABBIT-FIX-william-automation.md`](./CODERABBIT-FIX-william-automation.md) - William's automation improvements
+- [`CODERABBIT-FIX-william-blocking-prerequisites.md`](./CODERABBIT-FIX-william-blocking-prerequisites.md) - Blocking prerequisites clarity
+- [`CODERABBIT-FIX-william-blocking-prerequisites-contradiction.md`](./CODERABBIT-FIX-william-blocking-prerequisites-contradiction.md) - Prerequisites contradiction resolution
+- [`CODERABBIT-FIX-deploy-fixes-completeness.md`](./CODERABBIT-FIX-deploy-fixes-completeness.md) - Deployment fixes completeness
+- [`CODERABBIT-FIX-review-feedback-clarity.md`](./CODERABBIT-FIX-review-feedback-clarity.md) - Review feedback clarity improvements
+- [`CODERABBIT-FIX-review-consolidation-pointer.md`](./CODERABBIT-FIX-review-consolidation-pointer.md) - Review consolidation pointers
+- [`CODERABBIT-FIX-review-feedback-actions-deadlines.md`](./CODERABBIT-FIX-review-feedback-actions-deadlines.md) - Review actions and deadlines
+- [`CODERABBIT-FIX-phase3-execution-plan-security-automation.md`](./CODERABBIT-FIX-phase3-execution-plan-security-automation.md) - Phase 3 security automation
+- [`CODERABBIT-FIX-phase3-execution-plan-phase5-templates.md`](./CODERABBIT-FIX-phase3-execution-plan-phase5-templates.md) - Phase 5 templates
+- [`CODERABBIT-FIX-phase2-planning-summary-terminology-clarification.md`](./CODERABBIT-FIX-phase2-planning-summary-terminology-clarification.md) - Phase 2 terminology clarification
+- [`CODERABBIT-FIX-phase0-discovery-phase-boundary-clarification.md`](./CODERABBIT-FIX-phase0-discovery-phase-boundary-clarification.md) - Phase 0 boundary clarification
+- [`CODERABBIT-FIX-qa-https-enforcement-contradiction.md`](./CODERABBIT-FIX-qa-https-enforcement-contradiction.md) - QA HTTPS enforcement contradiction
+- [`CODERABBIT-FIX-quinn-review-corrections.md`](./CODERABBIT-FIX-quinn-review-corrections.md) - Quinn's review corrections
+- [`CODERABBIT-FIX-readme-pnpm-rationale-observability.md`](./CODERABBIT-FIX-readme-pnpm-rationale-observability.md) - README pnpm rationale and observability
+- [`CODERABBIT-FIX-olivia-sqlite-rationale.md`](./CODERABBIT-FIX-olivia-sqlite-rationale.md) - Olivia's SQLite rationale
+- [`CODERABBIT-FIX-omar-review-prioritization.md`](./CODERABBIT-FIX-omar-review-prioritization.md) - Omar's review prioritization
+- [`CODERABBIT-FIX-omar-task-numbering-cross-reference.md`](./CODERABBIT-FIX-omar-task-numbering-cross-reference.md) - Omar's task numbering cross-references
+- [`CODERABBIT-FIX-julia-review-document-reference.md`](./CODERABBIT-FIX-julia-review-document-reference.md) - Julia's document references
 
-### Low Priority - Documentation (10+ documents)
+### Low Priority - Documentation (15 documents)
 Quality improvements and clarifications:
 
-- `CODERABBIT-FIX-backlog-totals-mismatch.md` - Backlog count consistency
-- `CODERABBIT-FIX-quality-fragile-grep-pattern.md` - Robust grep patterns
-- `CODERABBIT-FIX-ownership-stale-output.md` - Stale expected output
-- [... and more]
+- [`CODERABBIT-FIX-backlog-totals-mismatch.md`](./CODERABBIT-FIX-backlog-totals-mismatch.md) - Backlog count consistency
+- [`CODERABBIT-FIX-quality-fragile-grep-pattern.md`](./CODERABBIT-FIX-quality-fragile-grep-pattern.md) - Robust grep patterns
+- [`CODERABBIT-FIX-ownership-stale-output.md`](./CODERABBIT-FIX-ownership-stale-output.md) - Stale expected output
+- [`CODERABBIT-FIX-quality-document-length-clarification.md`](./CODERABBIT-FIX-quality-document-length-clarification.md) - Document length clarification
+- [`CODERABBIT-FIX-t013-security-model-reference-clarification.md`](./CODERABBIT-FIX-t013-security-model-reference-clarification.md) - T-013 security model reference
+- [`CODERABBIT-FIX-t020-package-validation-robustness.md`](./CODERABBIT-FIX-t020-package-validation-robustness.md) - T-020 package validation robustness
+- [`CODERABBIT-FIX-t022-heredoc-simplification.md`](./CODERABBIT-FIX-t022-heredoc-simplification.md) - T-022 heredoc simplification
+- [`CODERABBIT-FIX-t027-directory-structure-prerequisites.md`](./CODERABBIT-FIX-t027-directory-structure-prerequisites.md) - T-027 directory structure prerequisites
+- [`CODERABBIT-FIX-t030-file-ownership-cleanup.md`](./CODERABBIT-FIX-t030-file-ownership-cleanup.md) - T-030 file ownership cleanup
+- [`CODERABBIT-FIX-t031-chmod-recursive-intent-clarification.md`](./CODERABBIT-FIX-t031-chmod-recursive-intent-clarification.md) - T-031 chmod recursive intent
+- [`CODERABBIT-FIX-t033-blocking-dependencies-actionable.md`](./CODERABBIT-FIX-t033-blocking-dependencies-actionable.md) - T-033 blocking dependencies actionable
+- [`CODERABBIT-FIX-t038-systemctl-output-format-clarification.md`](./CODERABBIT-FIX-t038-systemctl-output-format-clarification.md) - T-038 systemctl output format
+- [`CODERABBIT-FIX-t040-table-names-and-counts.md`](./CODERABBIT-FIX-t040-table-names-and-counts.md) - T-040 table names and counts
+- [`CODERABBIT-FIX-t041-browser-test-failure-criteria.md`](./CODERABBIT-FIX-t041-browser-test-failure-criteria.md) - T-041 browser test failure criteria
+- [`CODERABBIT-FIX-t044-command-robustness.md`](./CODERABBIT-FIX-t044-command-robustness.md) - T-044 command robustness
 
 ---
 

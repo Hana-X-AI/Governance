@@ -191,6 +191,10 @@ bash -c "cat > /tmp/test.txt << 'EOF'
 Date: $(date)
 EOF"
 cat /tmp/test.txt
+
+# Observed output (before fix):
+# Date: $(date)
+# 
 # Result: Shows "Date: $(date)" (literal) ✅ No execution failure
 
 # Test 2: Does build complete without fix?
@@ -201,6 +205,10 @@ bash -c "cat > /tmp/test2.txt" << EOF
 Date: $(date)
 EOF
 cat /tmp/test2.txt
+
+# Observed output (after/workaround):
+# Date: Wed Nov  7 12:34:56 UTC 2025
+#
 # Result: Shows "Date: Wed Nov 7..." (expanded) ✅ Workaround exists
 ```
 

@@ -321,7 +321,7 @@ All team members have reviewed the POC4 CodeRabbit planning documentation and pr
   - CI/CD integration tests
 - **Status**: Must complete before production CI/CD integration
 
-**Total Blocking Effort**: 23 hours (3 days) - Can run in parallel
+**Total Blocking Effort**: 23h person-hours (can parallelize across 3 agents)
 
 ---
 
@@ -353,34 +353,46 @@ All team members have reviewed the POC4 CodeRabbit planning documentation and pr
 
 ### Original Timeline (From Planning Docs):
 ```
-Day 1: Phase 0 (4h) + Phase 1 (4h) = 8 hours
-Day 2: Validation (4h)
-Total: 12 hours (1.5 days)
+Effort: 12 person-hours total
+Wall-clock time: 1.5 days
+  Day 1: Phase 0 (4h) + Phase 1 (4h) = 8h
+  Day 2: Validation (4h) = 4h
 ```
 
 ### Revised Timeline (With Team Feedback):
+
+**Understanding Effort vs. Time**:
+- **Effort**: Cumulative person-hours (sum of all agent work)
+- **Wall-clock time**: Elapsed calendar time (reduced by parallel execution)
+- **Example**: 3 agents working 4h each = 12h effort, but only 4h wall-clock time
+
 ```
-Week 1 (Pre-Deployment):
-├── Day 1: Test Suite Creation (Julia) - 12 hours
-├── Day 1: Parser Validation (Carlos) - 4 hours [PARALLEL]
-└── Day 1: CI/CD Enhancements (Agent Zero) - 7 hours [PARALLEL]
-    Total: 12 hours (3 agents parallel) = 1 day
+Day 1 (Pre-Deployment - Blocking Items):
+├── Julia: Test Suite Creation - 12h
+├── Carlos: Parser Validation - 4h [PARALLEL]
+└── Agent Zero: CI/CD Enhancements - 7h [PARALLEL]
+    Effort: 23h person-hours
+    Wall-clock time: ~12h (1–1.5 days, 3 agents parallel)
 
-Week 2 (Deployment):
-├── Day 2: Infrastructure Enhancements (William) - 1.5 hours
-├── Day 2: Phase 0 (William + Carlos) - 4 hours
-├── Day 2: Phase 1 (Agent Zero) - 4 hours
-└── Day 2: Integration Testing (All) - 2 hours
-    Total: 11.5 hours = 1.5 days
+Day 2 (Deployment - Phase 0 & Phase 1):
+├── William: Infrastructure Enhancements - 1.5h
+├── William + Carlos: Phase 0 - 4h
+├── Agent Zero: Phase 1 - 4h
+└── All: Integration Testing - 2h
+    Effort: 11.5h person-hours
+    Wall-clock time: ~8h (1 day with some parallelization)
 
-Week 2 (Validation):
-└── Day 3: Validation & Training (Julia + Team) - 4 hours
-    Total: 4 hours = 0.5 days
+Day 3 (Validation & Training):
+└── Julia + Team: Validation & Training - 4h
+    Effort: 4h person-hours
+    Wall-clock time: ~4h (0.5 days)
 
-TOTAL PROJECT: 3 days (was 1.5 days)
+TOTAL PROJECT:
+- Effort: 38.5h person-hours (was 12h)
+- Wall-clock time: 2.5–3 days (was 1.5 days)
 ```
 
-**Timeline Impact**: +1.5 days for quality and production-readiness
+**Timeline Impact**: +1–1.5 days wall-clock time, +26.5h effort for quality and production-readiness
 
 ---
 
@@ -520,22 +532,30 @@ Based on comprehensive multi-agent review, the POC4 CodeRabbit project demonstra
 
 ### Recommendation: **GO WITH PRE-DEPLOYMENT WEEK**
 
-**Week 1 (Pre-Deployment)**: Address 3 blocking items (12 hours parallel work)
+**Week 1 (Pre-Deployment)**: Address 3 blocking items
 - Julia: Create test suite (12h)
 - Carlos: Validate parser (4h) [PARALLEL]
 - Agent Zero: CI/CD enhancements (7h) [PARALLEL]
+- **Effort**: 23h person-hours
+- **Wall-clock time**: ~1–1.5 days (3 agents parallel)
 
-**Week 2 (Deployment)**: Execute Phase 0 + Phase 1 (11.5 hours)
+**Week 2 (Deployment)**: Execute Phase 0 + Phase 1
 - William: Infrastructure + Phase 0 (5.5h)
 - Agent Zero: Phase 1 deployment (4h)
 - Team: Integration testing (2h)
+- **Effort**: 11.5h person-hours
+- **Wall-clock time**: ~1 day (some parallelization)
 
-**Week 2 (Validation)**: Training and validation (4 hours)
+**Week 2 (Validation)**: Training and validation
 - Julia: Execute test plan
 - Team: Training session
 - Sign-off and lessons learned
+- **Effort**: 4h person-hours
+- **Wall-clock time**: ~0.5 days
 
-**Total Timeline**: 3 days (acceptable for production quality)
+**Total Timeline**: 
+- **Effort**: 38.5h person-hours
+- **Wall-clock time**: 2.5–3 days (acceptable for production quality)
 
 ---
 
@@ -752,19 +772,45 @@ Based on comprehensive multi-agent review, the POC4 CodeRabbit project demonstra
 ### Immediate (User Decision Required):
 
 1. **Approve 3-day timeline?**
-   - Week 1: Pre-deployment (address blocking items)
-   - Week 2: Deployment + Validation
-   - Total: 3 days
+   - **Timeline**: November 11-13, 2025 (3 business days from approval)
+   - **Acceptance Criteria**:
+     - ✅ Day 1 (Nov 11): All 3 blocking items resolved (Julia: test suite complete, Carlos: parser validated, Agent Zero: CI/CD enhanced)
+     - ✅ Day 2 (Nov 12): Phase 0 + Phase 1 deployed, integration tests pass (0 critical failures)
+     - ✅ Day 3 (Nov 13): Validation complete, training delivered, sign-off obtained from Agent Zero
+   - **Pass Conditions**:
+     - Day 1: 100% of blocking items marked RESOLVED in defect tracker
+     - Day 2: All deployment checklists completed, system accessible at production URL
+     - Day 3: Test plan executed with ≥95% pass rate, stakeholder sign-off documented
+   - **Responsible Approver**: User (final authority)
+   - **Decision Deadline**: November 10, 2025 EOD
 
 2. **Approve budget increase?**
-   - Original: 12 hours
-   - Revised: 27.5 hours
-   - Increase: +15.5 hours (+129%)
+   - **Original**: 12h person-hours
+   - **Revised**: 27.5h person-hours
+   - **Increase**: +15.5h (+129%)
+   - **Acceptance Criteria**:
+     - ✅ Hard cap: ≤27.5h total effort (no overruns without re-approval)
+     - ✅ ROI justification: 6,778% first-year ROI (quality investment pays back in <1 week)
+     - ✅ Value metric: Production-ready system vs. prototype (meets Hana-X standards for long-term deployment)
+   - **Escalation Path**:
+     - If effort approaches 25h (90% threshold): Agent Zero notifies user immediately with status report
+     - If effort exceeds 27.5h: STOP all work, Agent Zero presents revised plan for user re-approval
+     - Escalation recipient: User (via Agent Zero daily status updates)
+   - **Responsible Approver**: User (budget authority)
+   - **Decision Deadline**: November 10, 2025 EOD
 
 3. **Priority confirmation?**
-   - Team feedback: Quality > Speed
-   - Production-ready > Prototype
-   - Standards compliance > Quick deployment
+   - **Principle**: Quality > Speed
+   - **Acceptance Criteria**:
+     - ☐ User confirms: "I approve prioritizing production quality over rapid deployment"
+     - ☐ User acknowledges: "I accept +1.5 days timeline for production-ready system"
+     - ☐ User agrees: "Standards compliance is non-negotiable for this deployment"
+   - **Actions Following Confirmation**:
+     - ✅ Defer non-critical scope: Advanced analytics features → Phase 2 (post-production)
+     - ✅ Maintain critical scope: All 3 blocking items + core deployment + validation
+     - ✅ Document trade-off: Quality investment detailed in lessons learned report
+   - **Responsible Approver**: User (strategic decision)
+   - **Decision Deadline**: November 10, 2025 EOD
 
 ### Upon Approval:
 

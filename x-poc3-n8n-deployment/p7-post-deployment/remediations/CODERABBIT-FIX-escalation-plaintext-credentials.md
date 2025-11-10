@@ -290,6 +290,42 @@ SAMBA_ADMIN_PASSWORD=$(get_credential "samba_admin")
 PGPASSWORD="$N8N_DB_PASSWORD" psql -h hx-postgres-server -U n8n_user -d n8n_poc3
 ```
 
+**Recommendation: Shared Utilities Library** (per CodeRabbit suggestion):
+
+The `get_credential()` function above is production-ready and should be extracted into a shared utilities library to avoid duplication across scripts.
+
+**Proposed Location**: `/srv/cc/hana-x-infrastructure/lib/credential-utils.sh`
+
+**Usage Pattern**:
+```bash
+#!/bin/bash
+# Source shared credential utilities
+source /srv/cc/hana-x-infrastructure/lib/credential-utils.sh
+
+# Use get_credential() function from library
+N8N_DB_PASSWORD=$(get_credential "n8n_user")
+PGPASSWORD="$N8N_DB_PASSWORD" psql -h hx-postgres-server -U n8n_user -d n8n_poc3
+```
+
+**Benefits of Shared Library**:
+1. **Single Source of Truth**: One implementation, tested once, used everywhere
+2. **Consistent Error Handling**: All scripts handle credential retrieval failures the same way
+3. **Easier Updates**: Bug fixes or enhancements propagate to all scripts automatically
+4. **Reduced Duplication**: No need to copy/paste function across multiple scripts
+5. **Version Control**: Library can be versioned and deployed via Ansible (Amanda Chen)
+
+**Implementation Steps** (Future Enhancement):
+1. Create `/srv/cc/hana-x-infrastructure/lib/` directory
+2. Extract `get_credential()` to `credential-utils.sh`
+3. Add additional utility functions (e.g., `rotate_credential()`, `validate_credential_file()`)
+4. Create test suite for utility functions
+5. Update all existing scripts to source the library
+6. Document library usage in infrastructure standards
+
+**Owner**: Amanda Chen (Ansible Automation Specialist) - appropriate for Phase 2+ automation
+
+**Note**: For Phase 1 (this POC), the inline function is acceptable. Library extraction recommended when 3+ scripts use the pattern.
+
 ---
 
 ### Alternative: Use Placeholder Syntax
@@ -569,3 +605,216 @@ After fixing:
 **Next Step**: Apply credential vault references to all affected lines, install pre-commit hook, rotate exposed credentials
 **Priority**: CRITICAL - Security violation / Compliance risk
 **Coordination**: Security team must approve credential rotation procedure
+
+---
+
+## CodeRabbit Response (2025-11-10)
+
+### Overview
+
+This section documents how CodeRabbit AI review finding about reusable credential retrieval function was addressed through shared utilities library recommendation.
+
+**CodeRabbit Review Comments Addressed**: 1
+
+---
+
+### Finding: Standard Credential Retrieval Function is Reusable
+
+**CodeRabbit Comment** (lines 259-292):
+```
+Standard credential retrieval function is reusable and production-ready.
+
+The get_credential() function (lines 259-292) provides:
+
+- Error handling for missing vault file
+- Error handling for missing credential key
+- Clean interface for credential retrieval
+- Usage examples for multiple credentials
+
+Enhancement suggestion: Consider adding this function to a shared utilities
+library (/srv/cc/hana-x-infrastructure/lib/credential-utils.sh) so all
+scripts can source it instead of duplicating the function.
+```
+
+**Response**:
+
+Added comprehensive shared utilities library recommendation (lines 293-328):
+
+**What Was Added**:
+
+1. **Acknowledgment of Production Readiness**:
+   - Confirmed `get_credential()` function is production-ready
+   - Documented key features (error handling, clean interface, usage examples)
+
+2. **Proposed Shared Library Location** (line 297):
+   - `/srv/cc/hana-x-infrastructure/lib/credential-utils.sh`
+   - Consistent with Hana-X infrastructure repository structure
+
+3. **Usage Pattern Documentation** (lines 299-308):
+   ```bash
+   #!/bin/bash
+   # Source shared credential utilities
+   source /srv/cc/hana-x-infrastructure/lib/credential-utils.sh
+
+   # Use get_credential() function from library
+   N8N_DB_PASSWORD=$(get_credential "n8n_user")
+   PGPASSWORD="$N8N_DB_PASSWORD" psql -h hx-postgres-server -U n8n_user -d n8n_poc3
+   ```
+
+4. **Benefits of Shared Library** (lines 310-315):
+   - **Single Source of Truth**: One implementation, tested once, used everywhere
+   - **Consistent Error Handling**: All scripts handle failures the same way
+   - **Easier Updates**: Bug fixes propagate automatically
+   - **Reduced Duplication**: No copy/paste across scripts
+   - **Version Control**: Library versioned and deployed via Ansible
+
+5. **Implementation Steps** (lines 317-323):
+   - Create `/srv/cc/hana-x-infrastructure/lib/` directory
+   - Extract `get_credential()` to `credential-utils.sh`
+   - Add additional utilities (`rotate_credential()`, `validate_credential_file()`)
+   - Create test suite for utility functions
+   - Update existing scripts to source the library
+   - Document library usage in infrastructure standards
+
+6. **Ownership and Timing** (lines 325-327):
+   - **Owner**: Amanda Chen (Ansible Automation Specialist)
+   - **Timeline**: Phase 2+ automation (not Phase 1)
+   - **Threshold**: Library extraction recommended when 3+ scripts use the pattern
+
+---
+
+### Rationale for Phase 2+ Timing
+
+**Why Not Phase 1 (Current POC)**:
+1. **Single Usage**: Currently only POC3 N8N deployment uses this pattern
+2. **Validation Phase**: Pattern needs validation in production before extraction
+3. **YAGNI Principle**: Don't create infrastructure until 3+ consumers exist
+4. **Focus**: Phase 1 focused on POC completion, not infrastructure optimization
+
+**When to Implement** (Phase 2+):
+- **Trigger**: When 3+ scripts/projects need credential retrieval
+- **Example Consumers**:
+  - POC3: N8N deployment scripts
+  - POC4: CodeRabbit integration scripts
+  - POC5: Future infrastructure deployments
+  - General: Database backup scripts, monitoring scripts, etc.
+
+**Coordination Required**:
+- **Amanda Chen**: Create and deploy shared library via Ansible
+- **Julia Santos**: Create test suite for utility functions
+- **William Taylor**: Update infrastructure standards documentation
+- **All agents**: Migrate existing scripts to use shared library
+
+---
+
+### Additional Utility Functions for Library
+
+Beyond `get_credential()`, the shared library could include:
+
+1. **`rotate_credential(credential_key, new_value)`**:
+   - Update credential in vault file
+   - Notify dependent services
+   - Log rotation event
+
+2. **`validate_credential_file()`**:
+   - Verify vault file exists and has correct permissions (0600)
+   - Check for malformed entries
+   - Validate credential key format
+
+3. **`list_credentials()`**:
+   - List all available credential keys (without values)
+   - For documentation and script development
+
+4. **`test_credential(credential_key, service)`**:
+   - Test credential against service (e.g., PostgreSQL, LDAP)
+   - Return success/failure for validation
+
+5. **`get_credential_metadata(credential_key)`**:
+   - Return metadata (last rotation date, owner, description)
+   - Support audit and compliance
+
+---
+
+### CodeRabbit Function Analysis
+
+**`get_credential()` Function Strengths** (lines 265-282):
+
+1. **Error Handling**:
+   ```bash
+   if [ ! -f "$credential_file" ]; then
+       echo "ERROR: Credential vault not found: $credential_file" >&2
+       return 1
+   fi
+   ```
+   - Checks for missing vault file
+   - Clear error message to stderr
+   - Non-zero exit code for error detection
+
+2. **Missing Key Handling**:
+   ```bash
+   if [ -z "$password" ]; then
+       echo "ERROR: Credential not found for key: $credential_key" >&2
+       return 1
+   fi
+   ```
+   - Validates credential exists before returning
+   - Prevents silent failures with empty values
+
+3. **Clean Interface**:
+   ```bash
+   get_credential() {
+       local credential_key="$1"
+       # ... implementation ...
+       echo "$password"
+   }
+   ```
+   - Single parameter (credential key)
+   - Returns value via stdout (pipeable)
+   - Local variables prevent pollution
+
+4. **Robust Parsing**:
+   ```bash
+   local password=$(grep "^${credential_key}:" "$credential_file" | cut -d':' -f2- | xargs)
+   ```
+   - Anchored grep (`^`) prevents partial matches
+   - `cut -d':' -f2-` handles colons in password
+   - `xargs` trims whitespace
+
+**Production-Ready Assessment**: ✅ **CONFIRMED**
+
+The function is well-designed with proper error handling, clean interface, and robust parsing. Ready for extraction to shared library when 3+ consumers exist.
+
+---
+
+### Impact Summary
+
+**Immediate Impact** (Phase 1):
+- ✅ CodeRabbit suggestion acknowledged and documented
+- ✅ Shared library proposal created with clear implementation steps
+- ✅ Usage pattern documented for future consumers
+- ✅ Ownership assigned (Amanda Chen)
+
+**Future Impact** (Phase 2+):
+- ✅ Reduced code duplication across projects (when 3+ consumers)
+- ✅ Consistent credential handling platform-wide
+- ✅ Easier maintenance and testing (single implementation)
+- ✅ Foundation for additional utility functions (rotate, validate, etc.)
+
+**Stakeholder Benefits**:
+- **Amanda Chen**: Clear scope for Phase 2+ automation work
+- **All Agents**: Consistent pattern for credential retrieval
+- **Security Team**: Centralized credential handling for auditing
+- **Infrastructure Team**: Reusable utility library for common operations
+
+---
+
+**CodeRabbit Review Status**: ✅ **FINDING ADDRESSED**
+
+**Reviewer**: CodeRabbit AI
+**Review Date**: 2025-11-10
+**Response Date**: 2025-11-10
+**Response Author**: Agent Zero (Claude Code)
+
+---
+
+**Note**: Shared library implementation deferred to Phase 2+ per YAGNI principle. Current inline function is acceptable for single-consumer scenario (POC3). Library extraction recommended when pattern adoption reaches 3+ projects.

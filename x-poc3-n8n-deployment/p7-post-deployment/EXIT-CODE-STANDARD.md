@@ -462,6 +462,16 @@ ERRORS=0
 
 echo "=== N8N Deployment Validation ==="
 
+# Pre-check: Verify N8N_DB_PASSWORD environment variable is set
+if [ -z "${N8N_DB_PASSWORD:-}" ]; then
+    echo "❌ ERROR: N8N_DB_PASSWORD environment variable not set"
+    echo "   Set before running: export N8N_DB_PASSWORD=\$(grep '^DB_PASSWORD=' /opt/n8n/.env | cut -d'=' -f2)"
+    echo "   Or source from automation: N8N_DB_PASSWORD=\$(grep '^DB_PASSWORD=' /opt/n8n/.env | cut -d'=' -f2)"
+    ERRORS=$((ERRORS + 1))
+    EXIT_CODE=1
+    exit $EXIT_CODE
+fi
+
 # Check service status
 if ! systemctl is-active --quiet n8n; then
     echo "❌ ERROR: N8N service not running"
@@ -487,8 +497,8 @@ else
     fi
 fi
 
-# Check database connection
-if ! sudo -u n8n psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT 1" > /dev/null 2>&1; then
+# Check database connection (password from environment variable)
+if ! sudo -u n8n env PGPASSWORD="$N8N_DB_PASSWORD" psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT 1" > /dev/null 2>&1; then
     echo "❌ ERROR: Database connection failed"
     ERRORS=$((ERRORS + 1))
 else
@@ -530,6 +540,36 @@ fi
 
 exit $EXIT_CODE
 ```
+
+**Usage Example (Automation-Friendly)**:
+
+```bash
+# Method 1: Export variable then run script (persistent for session)
+export N8N_DB_PASSWORD=$(grep '^DB_POSTGRESDB_PASSWORD=' /opt/n8n/.env | cut -d'=' -f2)
+/opt/n8n/scripts/validate-n8n.sh
+
+# Method 2: Inline variable (ephemeral, more secure)
+N8N_DB_PASSWORD=$(grep '^DB_POSTGRESDB_PASSWORD=' /opt/n8n/.env | cut -d'=' -f2) /opt/n8n/scripts/validate-n8n.sh
+
+# Method 3: For CI/CD pipelines (credential from secure storage)
+N8N_DB_PASSWORD="${CI_N8N_DB_PASSWORD}" /opt/n8n/scripts/validate-n8n.sh
+
+# Method 4: Ansible/Automation (vault-sourced credential)
+- name: Run N8N validation
+  ansible.builtin.shell:
+    cmd: /opt/n8n/scripts/validate-n8n.sh
+  environment:
+    N8N_DB_PASSWORD: "{{ vault_n8n_db_password }}"
+  register: validation_result
+  failed_when: validation_result.rc != 0 and validation_result.rc != 2
+```
+
+**Security Notes**:
+- ✅ Password never hardcoded in script
+- ✅ Password not visible in process list (passed via environment)
+- ✅ Script fails fast if N8N_DB_PASSWORD not provided
+- ✅ Compatible with CI/CD secret management (GitHub Actions, GitLab CI, Jenkins)
+- ✅ Ansible Vault integration supported
 
 ---
 

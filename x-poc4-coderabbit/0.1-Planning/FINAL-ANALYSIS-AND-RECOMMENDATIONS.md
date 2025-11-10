@@ -17,7 +17,7 @@
 
 **Critical Findings**:
 1. ✅ **CodeRabbit CLI EXISTS** - Installation command confirmed in research
-2. ✅ **API Key AVAILABLE** - Key found in `0.0-Reasearch/api-key.md`
+2. ✅ **API Key AVAILABLE** - Key found in `0.0-Research/api-key.md`
 3. ✅ **Architecture SOUND** - Dual-capability design solves the integration gap
 4. ✅ **Code PRODUCTION-READY** - Parser and wrapper ready for deployment
 5. ⚠️ **Documentation REFORMATTED** - Created formatted versions for clarity
@@ -30,7 +30,7 @@
 
 ### CodeRabbit CLI Verification ✅
 
-**File**: `/srv/cc/Governance/x-poc4-coderabbit/0.0-Reasearch/coderabbit-cli.md`
+**File**: `/srv/cc/Governance/x-poc4-coderabbit/0.0-Research/coderabbit-cli.md`
 
 **Content**:
 ```bash
@@ -50,7 +50,7 @@ curl -fsSL https://cli.coderabbit.ai/install.sh | sh
 
 ### API Key Verification ✅
 
-**File**: `/srv/cc/Governance/x-poc4-coderabbit/0.0-Reasearch/api-key.md`
+**File**: `/srv/cc/Governance/x-poc4-coderabbit/0.0-Research/api-key.md`
 
 **Content**:
 ```
@@ -63,7 +63,7 @@ cr-fe13e8590657e79c8ba231c3591afcd97b61e4395e79b0adf34aa1eb7c
 
 **Security**:
 - ✅ Key stored in research directory (project-local)
-- ⚠️ Ensure .gitignore includes `0.0-Reasearch/` if committing to public repo
+- ⚠️ Ensure .gitignore includes `0.0-Research/` if committing to public repo
 - ✅ Key will be used in environment variable (`CODERABBIT_API_KEY`)
 
 **Impact**: **Authentication resolved** - Can configure CLI with key
@@ -453,7 +453,7 @@ sudo tee /etc/profile.d/coderabbit.sh
 **Security**:
 - API key in environment variable (not hardcoded)
 - Key stored in research directory (project-local)
-- Ensure `.gitignore` includes `0.0-Reasearch/` if public repo
+- Ensure `.gitignore` includes `0.0-Research/` if public repo
 
 ---
 

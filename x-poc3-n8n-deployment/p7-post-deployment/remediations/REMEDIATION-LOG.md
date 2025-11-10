@@ -31,6 +31,16 @@ This log tracks all CodeRabbit-identified issues and their remediation documenta
 
 ### CRITICAL Priority (Immediate Action Required)
 
+---
+
+**⚠️  SECURITY NOTICE: EXPOSED CREDENTIALS - EXAMPLES FOR ILLUSTRATION ONLY**
+
+The credential values shown below are **EXPOSED/COMPROMISED** credentials found in documentation during security review. These are **NOT ACTIVE** and are shown here **FOR ILLUSTRATION ONLY** to document what was found. All values have been **MASKED** in this log. The actual plaintext credentials have been rotated and replaced with vault references in the source documents.
+
+**All exposed credentials have been or must be immediately rotated.**
+
+---
+
 #### 1. CODERABBIT-FIX-phase3-env-file-security.md
 **Issue**: Phase 3 execution plan .env files lack permissions, key parsing issues, secrets in logs
 **Location**: Multiple phase 3 execution documents
@@ -39,39 +49,39 @@ This log tracks all CodeRabbit-identified issues and their remediation documenta
 **Action Required**: Set 600 permissions on all .env files, fix `cut -d'=' -f2-` parsing
 
 #### 2. CODERABBIT-FIX-escalation-plaintext-credentials.md
-**Issue**: Database password "Major8859!" exposed in 9 locations in escalation document
+**Issue**: Database password `[REDACTED-████████]` exposed in 9 locations in escalation document
 **Location**: `p4-validation/issues-log.md` and escalation documents
 **Impact**: Database compromise, full n8n data access
 **Status**: ✅ DOCUMENTED
 **Action Required**: Replace with credential vault references, rotate password immediately
 
 #### 3. CODERABBIT-FIX-quinn-database-credentials.md
-**Issue**: Hardcoded database passwords in Quinn's planning and execution documents
+**Issue**: Hardcoded database passwords `[REDACTED-████████]` in Quinn's planning and execution documents
 **Location**: Lines 72-77, 545-557, 938-947 in multiple docs
 **Impact**: Database credential exposure in version control
 **Status**: ✅ DOCUMENTED
 **Action Required**: Replace with vault references, document n8n restart requirement after rotation
 
 #### 4. CODERABBIT-FIX-dns-task-credentials.md
-**Issue**: Samba admin password "Major3059!" exposed in DNS task documentation
+**Issue**: Samba admin password `[REDACTED-████████]` exposed in DNS task documentation
 **Location**: Lines 24, 28 in DNS configuration task
 **Impact**: Domain administrator compromise, full AD control
 **Status**: ✅ DOCUMENTED
 **Action Required**: Use interactive prompts or environment variables, rotate password immediately
 
 #### 5. CODERABBIT-FIX-runbook-plaintext-credentials.md
-**Issue**: Database password "Major8859" in 4 locations in operational runbook
+**Issue**: Database password `[REDACTED-████████]` in 4 locations in operational runbook
 **Location**: Lines 221, 241, 407, 416 in operational documentation
 **Impact**: Production database credential in operational docs
 **Status**: ✅ DOCUMENTED
 **Action Required**: Replace with credential vault, add credential management section, rotate immediately
 
 #### 6. CODERABBIT-FIX-deep-dive-password-exposure.md
-**Issue**: Database password "Major8859!" in .env template example
+**Issue**: Database password `[REDACTED-████████]` in .env template example
 **Location**: Line 946 in `x-docs/n8n-master-deep-dive-analysis.md`
 **Impact**: Real credential in documentation template
 **Status**: ✅ DOCUMENTED
-**Action Required**: Replace with obvious placeholder, add security warnings, rotate password
+**Action Required**: Replace with obvious placeholder (e.g., `REPLACEME_DB_PASSWORD`), add security warnings, rotate password
 
 ---
 
@@ -117,11 +127,11 @@ This log tracks all CodeRabbit-identified issues and their remediation documenta
 **Action Required**: Standardize on svc-n8n across all documentation
 
 #### 12. CODERABBIT-FIX-issues-log-test-credentials.md
-**Issue**: Test user password "caio@hx.dev.local / Major8859!" in validation instructions
+**Issue**: Test user credentials `caio@hx.dev.local / [REDACTED-████████]` in validation instructions
 **Location**: Line 263 in `p4-validation/issues-log.md`
 **Impact**: Test user credential exposure in version control
 **Status**: ✅ DOCUMENTED
-**Action Required**: Replace with placeholder, document secure distribution
+**Action Required**: Replace with placeholder (e.g., `REPLACEME_TEST_PASSWORD`), document secure distribution
 
 #### 13. CODERABBIT-FIX-william-exit-codes.md
 **Issue**: Exit code ambiguity prevents CI/CD warning gates (both 0)
