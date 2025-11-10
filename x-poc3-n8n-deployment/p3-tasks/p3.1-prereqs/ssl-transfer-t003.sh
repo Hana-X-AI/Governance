@@ -41,6 +41,8 @@ TARGET_USER="administrator"
 PRIVATE_KEY="n8n.hx.dev.local.key"
 CERTIFICATE="n8n.hx.dev.local.crt"
 CA_CERTIFICATE="hx-dev-ca.crt"
+# CA_CERTIFICATE="ca-bundle.crt"  # Uncomment and use this for certificates with intermediate CA
+                                  # Create bundle: cat root.crt intermediate.crt > ca-bundle.crt
 
 # Source paths (adjust based on your easy-rsa PKI directory structure)
 SOURCE_KEY_PATH="/etc/ssl/private/${PRIVATE_KEY}"
@@ -56,9 +58,20 @@ LOG_DIR="/opt/n8n/logs"
 LOG_FILE="${LOG_DIR}/t-003-ssl-transfer-$(date +%Y%m%d-%H%M%S).log"
 TEMP_DIR="/tmp/ssl-transfer-$$"  # Unique temp dir (PID-based)
 
+# Staging paths on source server for sudo-assisted file access
+SOURCE_STAGE_DIR="/tmp/ssl-staging-$$"  # Unique staging dir on source
+SOURCE_STAGED_FILES=()  # Track staged files for cleanup
+
 # Exit codes
 EXIT_SUCCESS=0
 EXIT_ERROR=1
+
+#------------------------------------------------------------------------------
+# Initialize Logging Infrastructure
+#------------------------------------------------------------------------------
+# Create local log directory before any logging operations
+mkdir -p "$LOG_DIR"
+chmod 755 "$LOG_DIR"  # Ensure readable by relevant users
 
 #------------------------------------------------------------------------------
 # Logging Functions
@@ -100,6 +113,20 @@ cleanup() {
         log_error "  Primary: @agent-frank (Infrastructure & Identity Specialist)"
         log_error "  Secondary: Security team (certificate issues)"
         log_error "  Tertiary: Network team (connectivity issues)"
+    fi
+
+    # Clean up staged files on source server
+    if [ ${#SOURCE_STAGED_FILES[@]} -gt 0 ]; then
+        log "Cleaning up staged files on source server..."
+        for staged_file in "${SOURCE_STAGED_FILES[@]}"; do
+            ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_file}" 2>&1 | tee -a "$LOG_FILE" || true
+        done
+    fi
+
+    # Clean up staging directory on source server
+    if [ -n "$SOURCE_STAGE_DIR" ]; then
+        log "Cleaning up staging directory on source server..."
+        ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
     fi
 
     # Clean up temporary files on local workstation
@@ -203,13 +230,33 @@ transfer_from_source() {
     log "Step 1: Transferring certificates from source server"
     log "========================================"
 
-    # Transfer private key
-    log "Transferring private key: $PRIVATE_KEY"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${SOURCE_KEY_PATH}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
-        log_error "Failed to transfer private key"
-        log_error "Check: 1) File permissions on source, 2) SCP connectivity, 3) Disk space"
+    # Create staging directory on source server
+    log "Creating staging directory on source server: $SOURCE_STAGE_DIR"
+    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo mkdir -p ${SOURCE_STAGE_DIR} && sudo chmod 700 ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to create staging directory on source server"
         return 1
     fi
+
+    # Transfer private key using sudo-assisted staging
+    log "Staging private key: $PRIVATE_KEY"
+    local staged_key="${SOURCE_STAGE_DIR}/${PRIVATE_KEY}"
+    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_KEY_PATH} ${staged_key} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_key} && sudo chmod 600 ${staged_key}" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to stage private key on source server"
+        log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
+        return 1
+    fi
+    SOURCE_STAGED_FILES+=("$staged_key")
+    
+    log "Transferring private key: $PRIVATE_KEY"
+    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_key}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to transfer private key"
+        log_error "Check: 1) SCP connectivity, 2) Disk space"
+        return 1
+    fi
+
+    # Securely delete staged file on source
+    log "Removing staged private key from source..."
+    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo shred -u ${staged_key}" 2>&1 | tee -a "$LOG_FILE" || true
 
     # Verify file size (private key should be >0 bytes)
     local key_size=$(stat -c%s "$TEMP_DIR/$PRIVATE_KEY")
@@ -220,13 +267,26 @@ transfer_from_source() {
     fi
     log "Private key size: $key_size bytes ✓"
 
-    # Transfer certificate
-    log "Transferring certificate: $CERTIFICATE"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${SOURCE_CERT_PATH}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
-        log_error "Failed to transfer certificate"
-        log_error "Check: 1) File permissions on source, 2) SCP connectivity, 3) Disk space"
+    # Transfer certificate using sudo-assisted staging
+    log "Staging certificate: $CERTIFICATE"
+    local staged_cert="${SOURCE_STAGE_DIR}/${CERTIFICATE}"
+    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CERT_PATH} ${staged_cert} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_cert} && sudo chmod 644 ${staged_cert}" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to stage certificate on source server"
+        log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
         return 1
     fi
+    SOURCE_STAGED_FILES+=("$staged_cert")
+    
+    log "Transferring certificate: $CERTIFICATE"
+    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_cert}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to transfer certificate"
+        log_error "Check: 1) SCP connectivity, 2) Disk space"
+        return 1
+    fi
+
+    # Remove staged file on source
+    log "Removing staged certificate from source..."
+    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_cert}" 2>&1 | tee -a "$LOG_FILE" || true
 
     local cert_size=$(stat -c%s "$TEMP_DIR/$CERTIFICATE")
     if [ "$cert_size" -eq 0 ]; then
@@ -236,13 +296,26 @@ transfer_from_source() {
     fi
     log "Certificate size: $cert_size bytes ✓"
 
-    # Transfer CA certificate
-    log "Transferring CA certificate: $CA_CERTIFICATE"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${SOURCE_CA_PATH}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
-        log_error "Failed to transfer CA certificate"
-        log_error "Check: 1) File permissions on source, 2) SCP connectivity, 3) Disk space"
+    # Transfer CA certificate using sudo-assisted staging
+    log "Staging CA certificate: $CA_CERTIFICATE"
+    local staged_ca="${SOURCE_STAGE_DIR}/${CA_CERTIFICATE}"
+    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CA_PATH} ${staged_ca} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_ca} && sudo chmod 644 ${staged_ca}" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to stage CA certificate on source server"
+        log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
         return 1
     fi
+    SOURCE_STAGED_FILES+=("$staged_ca")
+    
+    log "Transferring CA certificate: $CA_CERTIFICATE"
+    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_ca}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+        log_error "Failed to transfer CA certificate"
+        log_error "Check: 1) SCP connectivity, 2) Disk space"
+        return 1
+    fi
+
+    # Remove staged file on source
+    log "Removing staged CA certificate from source..."
+    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_ca}" 2>&1 | tee -a "$LOG_FILE" || true
 
     local ca_size=$(stat -c%s "$TEMP_DIR/$CA_CERTIFICATE")
     if [ "$ca_size" -eq 0 ]; then
@@ -251,6 +324,10 @@ transfer_from_source() {
         return 1
     fi
     log "CA certificate size: $ca_size bytes ✓"
+
+    # Clean up staging directory on source
+    log "Cleaning up staging directory on source server..."
+    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
 
     log_success "All certificates transferred from source server"
     log ""
@@ -297,28 +374,45 @@ validate_certificates() {
         log_warning "Certificate expires within 30 days - plan renewal soon"
     fi
 
-    # Verify private key format
+    # Verify private key format (supports RSA, EC, Ed25519, etc.)
     log "Checking private key format..."
-    if ! openssl rsa -in "$TEMP_DIR/$PRIVATE_KEY" -check -noout 2>&1 | tee -a "$LOG_FILE"; then
+    if ! openssl pkey -in "$TEMP_DIR/$PRIVATE_KEY" -check -noout 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Private key format validation failed (corrupted or invalid)"
         log_error "Private key may be corrupted or encrypted with passphrase"
         return 1
     fi
     log "Private key format is valid ✓"
 
-    # Verify key-certificate pair match
+    # Verify key-certificate pair match using public key comparison (works for all key types)
     log "Verifying private key matches certificate..."
-    local key_modulus=$(openssl rsa -in "$TEMP_DIR/$PRIVATE_KEY" -noout -modulus 2>/dev/null | openssl md5 | cut -d' ' -f2)
-    local cert_modulus=$(openssl x509 -in "$TEMP_DIR/$CERTIFICATE" -noout -modulus 2>/dev/null | openssl md5 | cut -d' ' -f2)
+    
+    # Extract public key from private key and convert to DER format
+    local key_pubkey_der=$(openssl pkey -in "$TEMP_DIR/$PRIVATE_KEY" -pubout -outform PEM 2>/dev/null | openssl pkey -pubin -inform PEM -outform DER 2>/dev/null | openssl dgst -sha256 2>/dev/null)
+    if [ -z "$key_pubkey_der" ]; then
+        log_error "Failed to extract public key from private key"
+        log_error "Private key may be corrupted or in unsupported format"
+        return 1
+    fi
+    local key_fingerprint=$(echo "$key_pubkey_der" | awk '{print $2}')
+    
+    # Extract public key from certificate and convert to DER format
+    local cert_pubkey_der=$(openssl x509 -in "$TEMP_DIR/$CERTIFICATE" -pubkey -noout 2>/dev/null | openssl pkey -pubin -inform PEM -outform DER 2>/dev/null | openssl dgst -sha256 2>/dev/null)
+    if [ -z "$cert_pubkey_der" ]; then
+        log_error "Failed to extract public key from certificate"
+        log_error "Certificate may be corrupted or in unsupported format"
+        return 1
+    fi
+    local cert_fingerprint=$(echo "$cert_pubkey_der" | awk '{print $2}')
 
-    if [ "$key_modulus" != "$cert_modulus" ]; then
-        log_error "Private key does not match certificate (modulus mismatch)"
-        log_error "Key modulus: $key_modulus"
-        log_error "Cert modulus: $cert_modulus"
+    # Compare SHA-256 fingerprints of public keys
+    if [ "$key_fingerprint" != "$cert_fingerprint" ]; then
+        log_error "Private key does not match certificate (public key mismatch)"
+        log_error "Key public key fingerprint (SHA-256): $key_fingerprint"
+        log_error "Cert public key fingerprint (SHA-256): $cert_fingerprint"
         log_error "Ensure you're using the correct key-certificate pair"
         return 1
     fi
-    log "Private key matches certificate ✓"
+    log "Private key matches certificate (SHA-256 fingerprint verified) ✓"
 
     # Verify CA certificate format
     log "Checking CA certificate format..."
@@ -525,12 +619,58 @@ verify_installation() {
 
     # Verify certificate chain (cert signed by CA)
     log "Verifying certificate chain..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl verify -CAfile ${TARGET_CERT_DIR}/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE"; then
-        log_warning "Certificate chain verification failed"
-        log_warning "This is expected if using self-signed certificates"
-        log_warning "For production, ensure certificate is signed by trusted CA"
+    
+    # Detect CA type by checking if CA certificate is self-signed
+    local is_private_ca=$(ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CA_CERTIFICATE} -noout -subject -issuer 2>/dev/null | sort | uniq | wc -l" 2>/dev/null)
+    
+    if [ "$is_private_ca" = "1" ]; then
+        log "📋 Detected: Private/Self-Signed CA (subject == issuer)"
+        log "   For Private CA: Using -CAfile with root certificate"
     else
-        log "Certificate chain verified ✓"
+        log "📋 Detected: Public/Intermediate CA (subject != issuer)"
+        log "   For Public CA: May require intermediate certificate chain"
+    fi
+    
+    # Attempt verification with CA bundle (supports both root-only and root+intermediates)
+    log "Attempting certificate chain verification..."
+    local verify_output
+    verify_output=$(ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl verify -CAfile ${TARGET_CERT_DIR}/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1)
+    local verify_exit=$?
+    
+    if [ $verify_exit -eq 0 ]; then
+        log "Certificate chain verified successfully ✓"
+        log "$verify_output"
+    else
+        log_warning "Certificate chain verification failed with -CAfile"
+        log_warning "Error: $verify_output"
+        
+        # Check if intermediate certificate might be needed
+        if echo "$verify_output" | grep -q "unable to get local issuer certificate"; then
+            log_warning ""
+            log_warning "📖 TROUBLESHOOTING GUIDE:"
+            log_warning ""
+            log_warning "If using certificates with intermediate CA:"
+            log_warning "  1. Create CA bundle: cat root.crt intermediate.crt > ca-bundle.crt"
+            log_warning "  2. Update CA_CERTIFICATE variable to point to ca-bundle.crt"
+            log_warning "  3. Re-run this script"
+            log_warning ""
+            log_warning "Alternative: Use -untrusted option for intermediate cert:"
+            log_warning "  openssl verify -CAfile root.crt -untrusted intermediate.crt cert.crt"
+            log_warning ""
+            log_warning "For Private CA (self-signed): Verification failure may be expected"
+            log_warning "For Public CA: Ensure complete chain (root + intermediates) is available"
+        else
+            log_warning ""
+            log_warning "📖 Common certificate chain issues:"
+            log_warning "  - Certificate expired or not yet valid"
+            log_warning "  - Certificate signed by different CA than provided"
+            log_warning "  - CA certificate is not a valid CA (missing CA:TRUE)"
+            log_warning "  - Certificate revoked (check CRL/OCSP if applicable)"
+        fi
+        
+        log_warning ""
+        log_warning "Note: For self-signed/private CA, verification failure is expected"
+        log_warning "      Applications will need to trust ${TARGET_CERT_DIR}/${CA_CERTIFICATE}"
     fi
 
     log_success "Certificate installation verified"
