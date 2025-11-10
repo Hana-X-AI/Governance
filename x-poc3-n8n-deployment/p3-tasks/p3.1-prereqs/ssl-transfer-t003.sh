@@ -62,6 +62,11 @@ TEMP_DIR="/tmp/ssl-transfer-$$"  # Unique temp dir (PID-based)
 SOURCE_STAGE_DIR="/tmp/ssl-staging-$$"  # Unique staging dir on source
 SOURCE_STAGED_FILES=()  # Track staged files for cleanup
 
+# SSH options for non-interactive execution
+# - BatchMode=yes: Disables password prompts, fails if key auth unavailable
+# - StrictHostKeyChecking=accept-new: Auto-accepts new host keys, rejects changed keys
+SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
+
 # Exit codes
 EXIT_SUCCESS=0
 EXIT_ERROR=1
@@ -119,14 +124,14 @@ cleanup() {
     if [ ${#SOURCE_STAGED_FILES[@]} -gt 0 ]; then
         log "Cleaning up staged files on source server..."
         for staged_file in "${SOURCE_STAGED_FILES[@]}"; do
-            ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_file}" 2>&1 | tee -a "$LOG_FILE" || true
+            ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_file}" 2>&1 | tee -a "$LOG_FILE" || true
         done
     fi
 
     # Clean up staging directory on source server
     if [ -n "$SOURCE_STAGE_DIR" ]; then
         log "Cleaning up staging directory on source server..."
-        ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
+        ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
     fi
 
     # Clean up temporary files on local workstation
@@ -137,7 +142,7 @@ cleanup() {
 
     # Clean up temporary files on target server
     log "Cleaning up temporary files on target server..."
-    ssh "${TARGET_USER}@${TARGET_IP}" "rm -f /tmp/${PRIVATE_KEY} /tmp/${CERTIFICATE} /tmp/${CA_CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE" || true
+    ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "rm -f /tmp/${PRIVATE_KEY} /tmp/${CERTIFICATE} /tmp/${CA_CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE" || true
 
     log "========================================"
     log "Task T-003 completed with exit code: $exit_code"
@@ -169,7 +174,7 @@ preflight_checks() {
 
     # Create log directory on target server if needed
     log "Creating log directory on target server..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo mkdir -p ${LOG_DIR} && sudo chown ${TARGET_USER}:${TARGET_USER} ${LOG_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo mkdir -p ${LOG_DIR} && sudo chown ${TARGET_USER}:${TARGET_USER} ${LOG_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to create log directory on target server"
         return 1
     fi
@@ -180,38 +185,38 @@ preflight_checks() {
 
     # Verify SSH connectivity to source server
     log "Verifying SSH connectivity to source server (${SOURCE_SERVER})..."
-    if ! ssh -o ConnectTimeout=10 "${SOURCE_USER}@${SOURCE_IP}" "echo 'SSH connection successful'" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "echo 'SSH connection successful'" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Cannot connect to source server via SSH"
-        log_error "Check: 1) Network connectivity, 2) SSH service, 3) Credentials"
+        log_error "Check: 1) Network connectivity, 2) SSH service, 3) Credentials, 4) Host key acceptance"
         return 1
     fi
 
     # Verify SSH connectivity to target server
     log "Verifying SSH connectivity to target server (${TARGET_SERVER})..."
-    if ! ssh -o ConnectTimeout=10 "${TARGET_USER}@${TARGET_IP}" "echo 'SSH connection successful'" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "echo 'SSH connection successful'" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Cannot connect to target server via SSH"
-        log_error "Check: 1) Network connectivity, 2) SSH service, 3) Credentials"
+        log_error "Check: 1) Network connectivity, 2) SSH service, 3) Credentials, 4) Host key acceptance"
         return 1
     fi
 
     # Verify source files exist
     log "Verifying source certificate files on $SOURCE_SERVER..."
 
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_KEY_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_KEY_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Private key not found: ${SOURCE_KEY_PATH}"
         log_error "Run certificate generation procedure first (see SSL-CERTIFICATE-GENERATION-GUIDE.md)"
         return 1
     fi
     log "  ✓ Private key found: ${SOURCE_KEY_PATH}"
 
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_CERT_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_CERT_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Certificate not found: ${SOURCE_CERT_PATH}"
         log_error "Run certificate generation procedure first (see SSL-CERTIFICATE-GENERATION-GUIDE.md)"
         return 1
     fi
     log "  ✓ Certificate found: ${SOURCE_CERT_PATH}"
 
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_CA_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "test -f ${SOURCE_CA_PATH}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "CA certificate not found: ${SOURCE_CA_PATH}"
         log_error "Ensure CA certificate is available at ${SOURCE_CA_PATH}"
         return 1
@@ -232,7 +237,7 @@ transfer_from_source() {
 
     # Create staging directory on source server
     log "Creating staging directory on source server: $SOURCE_STAGE_DIR"
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo mkdir -p ${SOURCE_STAGE_DIR} && sudo chmod 700 ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo mkdir -p ${SOURCE_STAGE_DIR} && sudo chmod 700 ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to create staging directory on source server"
         return 1
     fi
@@ -240,7 +245,7 @@ transfer_from_source() {
     # Transfer private key using sudo-assisted staging
     log "Staging private key: $PRIVATE_KEY"
     local staged_key="${SOURCE_STAGE_DIR}/${PRIVATE_KEY}"
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_KEY_PATH} ${staged_key} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_key} && sudo chmod 600 ${staged_key}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_KEY_PATH} ${staged_key} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_key} && sudo chmod 600 ${staged_key}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to stage private key on source server"
         log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
         return 1
@@ -248,7 +253,7 @@ transfer_from_source() {
     SOURCE_STAGED_FILES+=("$staged_key")
     
     log "Transferring private key: $PRIVATE_KEY"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_key}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}:${staged_key}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer private key"
         log_error "Check: 1) SCP connectivity, 2) Disk space"
         return 1
@@ -256,7 +261,7 @@ transfer_from_source() {
 
     # Securely delete staged file on source
     log "Removing staged private key from source..."
-    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo shred -u ${staged_key}" 2>&1 | tee -a "$LOG_FILE" || true
+    ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo shred -u ${staged_key}" 2>&1 | tee -a "$LOG_FILE" || true
 
     # Verify file size (private key should be >0 bytes)
     local key_size=$(stat -c%s "$TEMP_DIR/$PRIVATE_KEY")
@@ -270,7 +275,7 @@ transfer_from_source() {
     # Transfer certificate using sudo-assisted staging
     log "Staging certificate: $CERTIFICATE"
     local staged_cert="${SOURCE_STAGE_DIR}/${CERTIFICATE}"
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CERT_PATH} ${staged_cert} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_cert} && sudo chmod 644 ${staged_cert}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CERT_PATH} ${staged_cert} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_cert} && sudo chmod 644 ${staged_cert}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to stage certificate on source server"
         log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
         return 1
@@ -278,7 +283,7 @@ transfer_from_source() {
     SOURCE_STAGED_FILES+=("$staged_cert")
     
     log "Transferring certificate: $CERTIFICATE"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_cert}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}:${staged_cert}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer certificate"
         log_error "Check: 1) SCP connectivity, 2) Disk space"
         return 1
@@ -286,7 +291,7 @@ transfer_from_source() {
 
     # Remove staged file on source
     log "Removing staged certificate from source..."
-    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_cert}" 2>&1 | tee -a "$LOG_FILE" || true
+    ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_cert}" 2>&1 | tee -a "$LOG_FILE" || true
 
     local cert_size=$(stat -c%s "$TEMP_DIR/$CERTIFICATE")
     if [ "$cert_size" -eq 0 ]; then
@@ -299,7 +304,7 @@ transfer_from_source() {
     # Transfer CA certificate using sudo-assisted staging
     log "Staging CA certificate: $CA_CERTIFICATE"
     local staged_ca="${SOURCE_STAGE_DIR}/${CA_CERTIFICATE}"
-    if ! ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CA_PATH} ${staged_ca} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_ca} && sudo chmod 644 ${staged_ca}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo cp ${SOURCE_CA_PATH} ${staged_ca} && sudo chown ${SOURCE_USER}:${SOURCE_USER} ${staged_ca} && sudo chmod 644 ${staged_ca}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to stage CA certificate on source server"
         log_error "Check: 1) Source file exists, 2) Sudo permissions, 3) Disk space"
         return 1
@@ -307,7 +312,7 @@ transfer_from_source() {
     SOURCE_STAGED_FILES+=("$staged_ca")
     
     log "Transferring CA certificate: $CA_CERTIFICATE"
-    if ! scp "${SOURCE_USER}@${SOURCE_IP}:${staged_ca}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}:${staged_ca}" "$TEMP_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer CA certificate"
         log_error "Check: 1) SCP connectivity, 2) Disk space"
         return 1
@@ -315,7 +320,7 @@ transfer_from_source() {
 
     # Remove staged file on source
     log "Removing staged CA certificate from source..."
-    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_ca}" 2>&1 | tee -a "$LOG_FILE" || true
+    ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -f ${staged_ca}" 2>&1 | tee -a "$LOG_FILE" || true
 
     local ca_size=$(stat -c%s "$TEMP_DIR/$CA_CERTIFICATE")
     if [ "$ca_size" -eq 0 ]; then
@@ -327,7 +332,7 @@ transfer_from_source() {
 
     # Clean up staging directory on source
     log "Cleaning up staging directory on source server..."
-    ssh "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
+    ssh $SSH_OPTS "${SOURCE_USER}@${SOURCE_IP}" "sudo rm -rf ${SOURCE_STAGE_DIR}" 2>&1 | tee -a "$LOG_FILE" || true
 
     log_success "All certificates transferred from source server"
     log ""
@@ -437,7 +442,7 @@ transfer_to_target() {
 
     # Create target directories if needed
     log "Creating target directories on $TARGET_SERVER..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo mkdir -p ${TARGET_KEY_DIR} ${TARGET_CERT_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo mkdir -p ${TARGET_KEY_DIR} ${TARGET_CERT_DIR}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to create target directories"
         log_error "Check: 1) Sudo permissions, 2) Filesystem space, 3) Parent directory permissions"
         return 1
@@ -446,14 +451,14 @@ transfer_to_target() {
 
     # Transfer files to target /tmp first (avoid permission issues)
     log "Transferring private key to target server..."
-    if ! scp "$TEMP_DIR/$PRIVATE_KEY" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "$TEMP_DIR/$PRIVATE_KEY" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer private key to target"
         log_error "Check: 1) Network connectivity, 2) Disk space on target /tmp, 3) SSH permissions"
         return 1
     fi
 
     # Verify transferred file size on target
-    local target_key_size=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${PRIVATE_KEY}" 2>/dev/null)
+    local target_key_size=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${PRIVATE_KEY}" 2>/dev/null)
     local local_key_size=$(stat -c%s "$TEMP_DIR/$PRIVATE_KEY")
     if [ "$target_key_size" != "$local_key_size" ]; then
         log_error "Private key size mismatch (local: $local_key_size, target: $target_key_size)"
@@ -463,13 +468,13 @@ transfer_to_target() {
     log "Private key transferred successfully ($target_key_size bytes) ✓"
 
     log "Transferring certificate to target server..."
-    if ! scp "$TEMP_DIR/$CERTIFICATE" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "$TEMP_DIR/$CERTIFICATE" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer certificate to target"
         log_error "Check: 1) Network connectivity, 2) Disk space on target /tmp, 3) SSH permissions"
         return 1
     fi
 
-    local target_cert_size=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${CERTIFICATE}" 2>/dev/null)
+    local target_cert_size=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${CERTIFICATE}" 2>/dev/null)
     local local_cert_size=$(stat -c%s "$TEMP_DIR/$CERTIFICATE")
     if [ "$target_cert_size" != "$local_cert_size" ]; then
         log_error "Certificate size mismatch (local: $local_cert_size, target: $target_cert_size)"
@@ -479,13 +484,13 @@ transfer_to_target() {
     log "Certificate transferred successfully ($target_cert_size bytes) ✓"
 
     log "Transferring CA certificate to target server..."
-    if ! scp "$TEMP_DIR/$CA_CERTIFICATE" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! scp $SSH_OPTS "$TEMP_DIR/$CA_CERTIFICATE" "${TARGET_USER}@${TARGET_IP}:/tmp/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to transfer CA certificate to target"
         log_error "Check: 1) Network connectivity, 2) Disk space on target /tmp, 3) SSH permissions"
         return 1
     fi
 
-    local target_ca_size=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${CA_CERTIFICATE}" 2>/dev/null)
+    local target_ca_size=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c%s /tmp/${CA_CERTIFICATE}" 2>/dev/null)
     local local_ca_size=$(stat -c%s "$TEMP_DIR/$CA_CERTIFICATE")
     if [ "$target_ca_size" != "$local_ca_size" ]; then
         log_error "CA certificate size mismatch (local: $local_ca_size, target: $target_ca_size)"
@@ -508,18 +513,18 @@ install_certificates() {
 
     # Backup existing certificates if present (rollback capability)
     log "Checking for existing certificates..."
-    if ssh "${TARGET_USER}@${TARGET_IP}" "sudo test -f ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>/dev/null; then
+    if ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo test -f ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>/dev/null; then
         log_warning "Existing private key found - creating backup"
-        if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo cp ${TARGET_KEY_DIR}/${PRIVATE_KEY} ${TARGET_KEY_DIR}/${PRIVATE_KEY}.backup-$(date +%Y%m%d-%H%M%S)" 2>&1 | tee -a "$LOG_FILE"; then
+        if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo cp ${TARGET_KEY_DIR}/${PRIVATE_KEY} ${TARGET_KEY_DIR}/${PRIVATE_KEY}.backup-$(date +%Y%m%d-%H%M%S)" 2>&1 | tee -a "$LOG_FILE"; then
             log_error "Failed to backup existing private key"
             return 1
         fi
         log "  ✓ Private key backed up"
     fi
 
-    if ssh "${TARGET_USER}@${TARGET_IP}" "sudo test -f ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>/dev/null; then
+    if ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo test -f ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>/dev/null; then
         log_warning "Existing certificate found - creating backup"
-        if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo cp ${TARGET_CERT_DIR}/${CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}.backup-$(date +%Y%m%d-%H%M%S)" 2>&1 | tee -a "$LOG_FILE"; then
+        if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo cp ${TARGET_CERT_DIR}/${CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}.backup-$(date +%Y%m%d-%H%M%S)" 2>&1 | tee -a "$LOG_FILE"; then
             log_error "Failed to backup existing certificate"
             return 1
         fi
@@ -528,7 +533,7 @@ install_certificates() {
 
     # Move private key
     log "Installing private key to $TARGET_KEY_DIR..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${PRIVATE_KEY} ${TARGET_KEY_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${PRIVATE_KEY} ${TARGET_KEY_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to move private key"
         log_error "Check: 1) Sudo permissions, 2) Filesystem space, 3) SELinux context"
         return 1
@@ -536,14 +541,14 @@ install_certificates() {
 
     # Set private key permissions (600, root:root)
     log "Setting private key permissions (600, root:root)..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_KEY_DIR}/${PRIVATE_KEY} && sudo chmod 600 ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_KEY_DIR}/${PRIVATE_KEY} && sudo chmod 600 ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to set private key permissions"
         return 1
     fi
 
     # Move certificate
     log "Installing certificate to $TARGET_CERT_DIR..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${CERTIFICATE} ${TARGET_CERT_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${CERTIFICATE} ${TARGET_CERT_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to move certificate"
         log_error "Check: 1) Sudo permissions, 2) Filesystem space, 3) SELinux context"
         return 1
@@ -551,14 +556,14 @@ install_certificates() {
 
     # Set certificate permissions (644, root:root)
     log "Setting certificate permissions (644, root:root)..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_CERT_DIR}/${CERTIFICATE} && sudo chmod 644 ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_CERT_DIR}/${CERTIFICATE} && sudo chmod 644 ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to set certificate permissions"
         return 1
     fi
 
     # Move CA certificate
     log "Installing CA certificate to $TARGET_CERT_DIR..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo mv -f /tmp/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to move CA certificate"
         log_error "Check: 1) Sudo permissions, 2) Filesystem space, 3) SELinux context"
         return 1
@@ -566,7 +571,7 @@ install_certificates() {
 
     # Set CA certificate permissions (644, root:root)
     log "Setting CA certificate permissions (644, root:root)..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_CERT_DIR}/${CA_CERTIFICATE} && sudo chmod 644 ${TARGET_CERT_DIR}/${CA_CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo chown root:root ${TARGET_CERT_DIR}/${CA_CERTIFICATE} && sudo chmod 644 ${TARGET_CERT_DIR}/${CA_CERTIFICATE}" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Failed to set CA certificate permissions"
         return 1
     fi
@@ -585,7 +590,7 @@ verify_installation() {
 
     # Verify private key exists and has correct permissions
     log "Verifying private key..."
-    local key_perms=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>/dev/null)
+    local key_perms=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_KEY_DIR}/${PRIVATE_KEY}" 2>/dev/null)
     if [ "$key_perms" != "600 root:root" ]; then
         log_error "Private key permissions incorrect: $key_perms (expected: 600 root:root)"
         return 1
@@ -594,7 +599,7 @@ verify_installation() {
 
     # Verify certificate exists and has correct permissions
     log "Verifying certificate..."
-    local cert_perms=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>/dev/null)
+    local cert_perms=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>/dev/null)
     if [ "$cert_perms" != "644 root:root" ]; then
         log_error "Certificate permissions incorrect: $cert_perms (expected: 644 root:root)"
         return 1
@@ -603,7 +608,7 @@ verify_installation() {
 
     # Verify CA certificate
     log "Verifying CA certificate..."
-    local ca_perms=$(ssh "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_CERT_DIR}/${CA_CERTIFICATE}" 2>/dev/null)
+    local ca_perms=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "stat -c '%a %U:%G' ${TARGET_CERT_DIR}/${CA_CERTIFICATE}" 2>/dev/null)
     if [ "$ca_perms" != "644 root:root" ]; then
         log_error "CA certificate permissions incorrect: $ca_perms (expected: 644 root:root)"
         return 1
@@ -612,7 +617,7 @@ verify_installation() {
 
     # Verify certificate validity on target server
     log "Verifying certificate validity on target server..."
-    if ! ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CERTIFICATE} -noout -subject" 2>&1 | tee -a "$LOG_FILE"; then
+    if ! ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CERTIFICATE} -noout -subject" 2>&1 | tee -a "$LOG_FILE"; then
         log_error "Certificate validation failed on target server"
         return 1
     fi
@@ -621,7 +626,7 @@ verify_installation() {
     log "Verifying certificate chain..."
     
     # Detect CA type by checking if CA certificate is self-signed
-    local is_private_ca=$(ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CA_CERTIFICATE} -noout -subject -issuer 2>/dev/null | sort | uniq | wc -l" 2>/dev/null)
+    local is_private_ca=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CA_CERTIFICATE} -noout -subject -issuer 2>/dev/null | sort | uniq | wc -l" 2>/dev/null)
     
     if [ "$is_private_ca" = "1" ]; then
         log "📋 Detected: Private/Self-Signed CA (subject == issuer)"
@@ -634,7 +639,7 @@ verify_installation() {
     # Attempt verification with CA bundle (supports both root-only and root+intermediates)
     log "Attempting certificate chain verification..."
     local verify_output
-    verify_output=$(ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl verify -CAfile ${TARGET_CERT_DIR}/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1)
+    verify_output=$(ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo openssl verify -CAfile ${TARGET_CERT_DIR}/${CA_CERTIFICATE} ${TARGET_CERT_DIR}/${CERTIFICATE}" 2>&1)
     local verify_exit=$?
     
     if [ $verify_exit -eq 0 ]; then
@@ -699,7 +704,7 @@ main() {
     log "  - CA Certificate: ${TARGET_CERT_DIR}/${CA_CERTIFICATE} (644, root:root)"
     log ""
     log "Certificate Details:"
-    ssh "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CERTIFICATE} -noout -subject -issuer -dates" 2>/dev/null | while read line; do
+    ssh $SSH_OPTS "${TARGET_USER}@${TARGET_IP}" "sudo openssl x509 -in ${TARGET_CERT_DIR}/${CERTIFICATE} -noout -subject -issuer -dates" 2>/dev/null | while read line; do
         log "  $line"
     done
     log ""
