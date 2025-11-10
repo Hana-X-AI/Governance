@@ -108,7 +108,7 @@ def _run_mypy(self):
     """Run mypy type checker"""
     print("  → Running mypy (types)...")
     try:
-        # Use --no-error-summary for cleaner parsing
+        # Try with column numbers first (newer mypy versions)
         result = subprocess.run(
             ['mypy', str(self.path), '--no-error-summary', '--show-column-numbers'],
             capture_output=True,
@@ -116,28 +116,53 @@ def _run_mypy(self):
             timeout=60
         )
 
-        # More robust parsing with regex
+        # More robust parsing with multiple regex patterns for version compatibility
         import re
-        pattern = r'^(.+?):(\d+):(?:\d+:)?\s*error:\s*(.+)$'
+        
+        # Pattern 1: With column numbers (mypy >= 0.900)
+        # Format: file.py:10:5: error: message
+        pattern_with_col = r'^(.+?):(\d+):(\d+):\s*error:\s*(.+)$'
+        
+        # Pattern 2: Without column numbers (mypy < 0.900 or when --show-column-numbers not supported)
+        # Format: file.py:10: error: message
+        pattern_no_col = r'^(.+?):(\d+):\s*error:\s*(.+)$'
 
         for line in result.stdout.split('\n'):
-            match = re.match(pattern, line.strip())
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Try pattern with column numbers first
+            match = re.match(pattern_with_col, line)
             if match:
-                file_path, line_num, message = match.groups()
-                self.issue_counter += 1
+                file_path, line_num, col_num, message = match.groups()
+            else:
+                # Fall back to pattern without column numbers
+                match = re.match(pattern_no_col, line)
+                if match:
+                    file_path, line_num, message = match.groups()
+                    col_num = None  # Column not available in older format
+                else:
+                    continue  # Skip lines that don't match either pattern
+            
+            # Validate line number before conversion
+            if not line_num.isdigit():
+                continue
+                
+            self.issue_counter += 1
 
-                issue = Issue(
-                    id=f"MYP-{self.issue_counter:03d}",
-                    priority=Priority.P1,
-                    category=Category.TYPES,
-                    source="mypy",
-                    file=file_path,
-                    line=int(line_num),
-                    message=message.strip(),
-                    details="Type checking error",
-                    fix="Add or correct type hints"
-                )
-                self.issues.append(issue)
+            issue = Issue(
+                id=f"MYP-{self.issue_counter:03d}",
+                priority=Priority.P1,
+                category=Category.TYPES,
+                source="mypy",
+                file=file_path,
+                line=int(line_num),
+                message=message.strip(),
+                details=f"Type checking error{f' (col {col_num})' if col_num else ''}",
+                fix="Add or correct type hints"
+            )
+            self.issues.append(issue)
 
         self.linters_run.append('mypy')
         print(f"    ✓ mypy: {len([i for i in self.issues if i.source == 'mypy'])} issues")
@@ -147,10 +172,11 @@ def _run_mypy(self):
 ```
 
 **Why this is better:**
-- ✅ Regex-based parsing more robust
-- ✅ Validates line numbers before conversion
-- ✅ Handles mypy's exact output format
-- ✅ Uses `--show-column-numbers` for better precision
+- ✅ **Version compatibility** - Handles both old and new mypy output formats
+- ✅ **Multiple patterns** - Tries pattern with column numbers, falls back to pattern without
+- ✅ **Validates line numbers** - Checks isdigit() before int() conversion
+- ✅ **Graceful degradation** - Works with mypy < 0.900 (no columns) and >= 0.900 (with columns)
+- ✅ **Optional column info** - Includes column number in details when available
 
 #### **1.5 Pytest Coverage File Path Assumptions**
 
