@@ -8,5 +8,8 @@ pytest-cov>=4.1.0         # Coverage reporting
 pytest-mock>=3.11.1       # Mocking support
 pytest-timeout>=2.2.0     # Test timeout handling
 
+# Version handling (PEP 440 compliant)
+packaging>=23.0           # Version parsing for linter version comparisons
+
 # Additional utilities
 coverage>=7.3.0           # Coverage analysis

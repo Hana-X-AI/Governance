@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 from typing import List, Dict
 from unittest.mock import Mock, patch, MagicMock
+from packaging import version
 
 
 # ==============================================================================
@@ -680,7 +681,10 @@ class TestIssueDeduplication:
 
 def parse_version(version_string: str) -> tuple:
     """
-    Parse version string to tuple for comparison.
+    DEPRECATED: Use packaging.version.parse() instead.
+    
+    Legacy simple parser that only handles numeric versions.
+    Kept for backward compatibility but not used.
 
     Args:
         version_string: Version string like "1.7.5"
@@ -693,17 +697,33 @@ def parse_version(version_string: str) -> tuple:
 
 def compare_versions(version1: str, version2: str) -> int:
     """
-    Compare two version strings.
-
+    Compare two version strings using PEP 440 compliant parsing.
+    
+    Handles complex versions including:
+    - Pre-releases: 1.0.0a1, 1.0.0b2, 1.0.0rc1
+    - Post-releases: 1.0.0.post1
+    - Dev releases: 1.0.0.dev1
+    - Local versions: 1.0.0+local.version
+    
     Args:
-        version1: First version
-        version2: Second version
+        version1: First version string (e.g., "1.7.5", "0.900a1")
+        version2: Second version string (e.g., "1.7.6", "0.900")
 
     Returns:
         int: -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+        
+    Examples:
+        >>> compare_versions("1.0.0", "1.0.1")
+        -1
+        >>> compare_versions("1.0.0", "1.0.0")
+        0
+        >>> compare_versions("1.0.0", "1.0.0a1")
+        1
+        >>> compare_versions("0.900", "0.910")
+        -1
     """
-    v1 = parse_version(version1)
-    v2 = parse_version(version2)
+    v1 = version.parse(version1)
+    v2 = version.parse(version2)
 
     if v1 < v2:
         return -1
