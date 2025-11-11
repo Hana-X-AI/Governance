@@ -27,6 +27,12 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Python testing artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
 # Log files
 *.log
 

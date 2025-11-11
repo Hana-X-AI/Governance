@@ -224,17 +224,22 @@ sudo nano /srv/cc/Governance/0.2-credentials/hx-credentials.md
 
 # 2. Generate secure password and persist to protected file
 # DO NOT echo or log the generated password
-NEW_PASSWORD=$(openssl rand -base64 24)
+# Generate URL-safe password (no /, +, = characters)
+NEW_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 20)
 
 # Store password securely (restrictive permissions, no stdout)
-sudo mkdir -p /root/.credentials
+# Use install to ensure safe directory creation with correct permissions
+sudo install -d -m 700 -o root -g root /root/.credentials
 echo "$NEW_PASSWORD" | sudo tee /root/.credentials/svc-n8n.password > /dev/null
 sudo chmod 600 /root/.credentials/svc-n8n.password
 echo "✅ Password generated and stored in /root/.credentials/svc-n8n.password"
 
 # 3. Update PostgreSQL user password using peer authentication
 # Run as postgres user (peer auth, no PGPASSWORD needed)
-sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
+# Use heredoc to avoid password in ps aux output
+sudo -u postgres psql << EOSQL
+ALTER USER "svc-n8n" WITH PASSWORD '$(cat /root/.credentials/svc-n8n.password)';
+EOSQL
 echo "✅ PostgreSQL user password updated"
 
 # 4. Create .pgpass for n8n service user (for application use)
