@@ -269,7 +269,7 @@ WEBHOOK_URL=https://n8n.hx.dev.local
 
 **Conclusion**: All 4 requirements are BLOCKING—none are optional or nice-to-have.
 
-**Evidence-Based Classification**: See detailed evidence with cross-references, failure modes, and source code verification in the "Proposed Changes" section above (lines 75-157).
+**Evidence-Based Classification**: See detailed evidence with cross-references, failure modes, and source code verification in the "Enhanced Each Requirement with Blocking Evidence" section above (lines 75-214).
 
 ---
 

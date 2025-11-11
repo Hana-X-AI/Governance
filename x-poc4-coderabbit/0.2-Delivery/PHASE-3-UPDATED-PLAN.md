@@ -396,7 +396,10 @@ class CodeRabbitConfig:
 #### 4.1 Unit Tests
 **File**: `.claude/agents/roger/test_layer3.py`
 **Owner**: Eric Johnson
-**Target**: 25+ tests (comprehensive coverage)
+**Target**: 45 tests minimum (per Julia QA review)
+  - Original Carlos recommendation: 30 tests
+  - Julia QA adjustment: 45 tests (15 additional critical edge cases)
+  - Total with Phase 2 regression: 62 tests
 
 **Test Categories**:
 1. **Cache Tests** (8 tests):
@@ -425,12 +428,100 @@ class CodeRabbitConfig:
    - Output parsing
    - Graceful degradation
 
+6. **CodeRabbit CLI not in PATH** (Julia QA addition):
+   - CLI not found in $PATH
+   - Expected: Graceful error, log warning, disable Layer 3
+   - Priority: P0 (will crash otherwise)
+
+7. **CodeRabbit CLI version incompatibility** (Julia QA addition):
+   - CLI version < 0.3.4 or breaking changes
+   - Expected: Version check, warning message
+   - Priority: P1 (prevents silent failures)
+
 4. **Integration Tests** (5 tests):
    - Full flow (cache miss → API → cache store)
    - Cache hit flow (no API call)
    - Rate limit enforcement
    - Finding category mapping
    - Layer 1 + Layer 3 deduplication
+
+6. **Cache hit + rate limit exceeded** (Julia QA addition):
+   - File in cache, but rate limit reached
+   - Expected: Return cached result, NO API call
+   - Priority: P0 (cost control)
+
+7. **Redis unavailable + file fallback** (Julia QA addition):
+   - Redis connection fails, switch to file-based rate limiting
+   - Expected: Seamless fallback, warning logged
+   - Priority: P0 (availability)
+
+8. **Concurrent Roger execution** (Julia QA addition):
+   - Two Roger instances analyzing different files
+   - Expected: Rate limit shared correctly, no race conditions
+   - Priority: P1 (production scenario)
+
+5. **Edge Case Tests** (5 tests - added per Carlos review):
+   - CodeRabbit CLI not found (PATH issue)
+   - Invalid CLI output format (parsing failure)
+   - Layer 3 enabled but Redis unavailable (file fallback)
+   - Cache hit + rate limit exceeded (should return cached, not call API)
+   - Empty file (0 bytes) - edge case handling
+
+
+**Security Edge Cases** (3 tests - Julia QA addition):
+6. **Path traversal attack**:
+   - File path contains `../../../etc/passwd`
+   - Expected: Blocked by security validation
+   - Priority: P0 (security)
+
+7. **Blocked path access**:
+   - File in `/etc/`, `/var/`, `/root/`
+   - Expected: Rejected by security rules
+   - Priority: P0 (security)
+
+8. **Disallowed file extension**:
+   - `.exe`, `.sh`, `.bin` file
+   - Expected: Skipped, not sent to CodeRabbit API
+   - Priority: P1 (API cost control)
+
+**Configuration Edge Cases** (2 tests - Julia QA addition):
+9. **Invalid YAML config**:
+   - Malformed `layer3-coderabbit.yaml`
+   - Expected: Parse error, fallback to defaults
+   - Priority: P1 (operational)
+
+10. **Missing config file**:
+    - `layer3-coderabbit.yaml` not found
+    - Expected: Use defaults, warn user
+    - Priority: P2 (usability)
+
+**File System Edge Cases** (3 tests - Julia QA addition):
+11. **Cache directory permissions denied**:
+    - Cache directory not writable
+    - Expected: Warn, disable caching, continue with API
+    - Priority: P1 (availability)
+
+12. **Disk full during cache write**:
+    - Insufficient disk space for cache entry
+    - Expected: Handle gracefully, continue operation
+    - Priority: P1 (robustness)
+
+13. **Corrupted cache entry**:
+    - Invalid JSON in cache file
+    - Expected: Ignore corrupted entry, call API, overwrite
+    - Priority: P1 (data integrity)
+
+**Network Edge Cases** (2 tests - Julia QA addition):
+14. **Redis connection timeout**:
+    - Redis slow to respond (>5 seconds)
+    - Expected: Timeout, fallback to file
+    - Priority: P1 (performance)
+
+15. **CodeRabbit API rate limit 429 response**:
+    - API returns 429 Too Many Requests
+    - Expected: Handle gracefully, log, continue
+    - Priority: P0 (API contract)
+
 
 **Test Quality Standards (CAIO)**:
 - 100% pass rate mandatory
@@ -535,6 +626,35 @@ coderabbit review --plain --type uncommitted --cwd .
 
 ---
 
+
+
+## Pre-Conditions for Day 1 Start (per Julia QA review)
+
+**MUST BE COMPLETE BEFORE DAY 1**:
+
+### Stakeholder Alignment (CRITICAL)
+- [ ] Julia Santos available for Day 6-6.5 (1.5 days, not just 1 day)
+- [ ] Eric Johnson aware of 45-test requirement (not 30)
+- [ ] Agent Zero aware of Day 8 contingency possibility
+- [ ] Samuel Wilson (Redis) on standby for Day 6 if Redis issues
+- [ ] Carlos Martinez available for technical questions
+
+### Infrastructure Validation (CRITICAL)
+- [ ] Execute PRE-IMPLEMENTATION-CHECKLIST.md (42 checks)
+- [ ] All 🔴 CRITICAL items PASS
+- [ ] CodeRabbit CLI v0.3.4 working
+- [ ] Redis server accessible (192.168.10.210:6379)
+- [ ] Cache directory writable
+
+### Documentation Review (REQUIRED)
+- [ ] Phase 3 plan reviewed by all stakeholders
+- [ ] Julia's QA review acknowledged
+- [ ] Carlos's technical review approved
+- [ ] Migration guide validated
+
+**IF ANY PRE-CONDITION FAILS**: BLOCK Day 1 start, resolve first
+
+
 ## Implementation Timeline (Revised)
 
 ### Day 1: API Client & Core Setup
@@ -559,6 +679,11 @@ coderabbit review --plain --type uncommitted --cwd .
 **Deliverables**:
 - Rate limiter (rate_limiter.py)
 - Redis integration with file fallback
+- **CRITICAL (Carlos review)**: Redis connection failure handling:
+  * Primary: Try Redis connection
+  * Fallback: Switch to file-based tracking if Redis fails
+  * Warning: Log Redis unavailability
+  * Recovery: Retry Redis on next rate limit check
 - YAML configuration loading
 - Rate limit unit tests
 
@@ -568,23 +693,57 @@ coderabbit review --plain --type uncommitted --cwd .
 - Replace layer3_stub.py with layer3_coderabbit.py
 - Integrate cache and rate limiter
 - Update roger_orchestrator.py (minimal changes)
+- **CRITICAL (Carlos review)**: Security configuration in YAML:
+  * validate_file_paths: true
+  * allowed_extensions: [".py", ".pyi", ".md", ".yaml", ".yml", ".json"]
+  * blocked_paths: ["/etc/", "/var/", "/root/"]
 - Integration tests
 
 ### Day 5: Testing & Bug Fixes
 **Owner**: Eric Johnson
 **Deliverables**:
-- Complete test suite (25+ tests)
+- Complete test suite (30 tests: 25 core + 5 edge cases per Carlos review)
 - Fix bugs found in testing
 - Performance optimization
 - Documentation updates
+- **IMPORTANT (Carlos review)**: Create MIGRATION-GUIDE.md
+  * Phase 2 to Phase 3 upgrade steps
+  * Configuration migration checklist
+  * Testing validation procedures
 
-### Day 6: Julia QA Validation
+### Day 6-6.5: Julia QA Validation (UPDATED per Julia review)
 **Owner**: Julia Santos
+**Duration**: 1.5 days (14 hours total, was 1 day/8 hours)
+**Rationale**: 62 total tests (17 Phase 2 regression + 45 Phase 3) require 14-20 hours
+
+**Day 6 AM (4 hours)**:
+- Environment validation: 30 min
+- Phase 2 regression tests (17): 1h 19m
+- Phase 3 functional tests (6): 2h 35m
+- Status check with Eric at 1pm
+
+**Day 6 PM (4 hours)**:
+- Performance tests (4): 3h 30m
+- Edge case tests: Start (30m)
+- Status check with Eric at 6pm
+
+**Day 6.5 AM (4 hours)**:
+- Complete edge case tests (15): 3h 5m
+- Integration tests (8): 2h 45m
+- Migration validation: 1h 35m
+- Status check with Eric at 1pm
+
+**Day 6.5 PM (2 hours)**:
+- Bug documentation: 1h
+- QA report writing: 1h
+- Deliverable: QA assessment report to Eric + Agent Zero
+
 **Deliverables**:
-- Comprehensive QA testing
-- Bug reports (if any)
-- Performance validation
+- Comprehensive QA testing (62 tests total)
+- Bug reports (if any) with severity classification
+- Performance validation (component-level SLAs)
 - Quality assessment
+- Production sign-off decision
 
 ### Day 7: Code Review & Approval
 **Owner**: Eric Johnson + Julia Santos
@@ -594,7 +753,30 @@ coderabbit review --plain --type uncommitted --cwd .
 - Final bug fixes
 - Julia's production sign-off
 
-**Total**: 7 days (realistic estimate based on Phase 1/2 experience)
+
+### Day 8: Contingency Fix Day (IF NEEDED - per Julia QA review)
+**Owner**: Eric Johnson
+**Trigger Conditions**:
+- >6 bugs found on Day 6-6.5 (realistic: 3-9 bugs expected)
+- >2 P0 bugs found (ESCALATE to Agent Zero)
+- >5 P1 bugs found
+- ANY Phase 2 regression (CRITICAL - stops all work)
+
+**Deliverables** (if triggered):
+- Bug fixes for issues found by Julia
+- Re-validation by Julia (2 hours)
+- Updated documentation
+- Final CodeRabbit review
+
+**Decision Point**: End of Day 6.5
+- Julia reports bug count and severity
+- Eric + Agent Zero decide if Day 8 needed
+- Communicate timeline adjustment to stakeholders
+
+**Total Timeline**: 7-8 days depending on Day 6.5 QA results
+
+
+**Total**: 7-8 days (7 days baseline + optional Day 8 contingency) (realistic estimate based on Phase 1/2 experience)
 
 ---
 
@@ -614,7 +796,44 @@ coderabbit review --plain --type uncommitted --cwd .
 - [x] All complexity <10
 - [x] CodeRabbit review: 0 findings
 - [x] Tests: 100% pass rate (42+ tests total)
-- [x] Performance: <5 seconds with caching
+- [x] Performance: <5 seconds with 90% cache hit rate (updated per Carlos review)
+
+
+### Component-Level Performance SLAs (per Julia QA review)
+
+**Detailed Performance Requirements**:
+
+| Component | Operation | Target SLA | Measurement Method | Priority |
+|-----------|-----------|-----------|-------------------|----------|
+| **Cache Lookup** | SHA256 + file read | <10ms per file | Timestamp before/after | P0 |
+| **Cache Hit** | JSON deserialize | <2ms per file | Timestamp before/after | P0 |
+| **Rate Limit Check** | Redis GET | <5ms per check | Timestamp before/after | P0 |
+| **API Call (miss)** | CodeRabbit CLI exec | <1s per file (95th percentile) | subprocess timeout | P0 |
+| **Deduplication** | Fingerprint compare | <100ms total | Timestamp before/after | P1 |
+| **Defect Log Write** | Markdown generation | <200ms | Timestamp before/after | P1 |
+| **TOTAL** | 10 files, 90% cache hit | <5s | End-to-end measurement | P0 |
+
+**Cache Hit Rate Scenarios**:
+
+| Scenario | Cache Hit % | API Calls | Expected Time | Pass/Fail |
+|----------|-------------|-----------|---------------|-----------|
+| **Optimal** | 100% | 0 | ~0.5s | ✅ PASS |
+| **Target** | 90% | 1 | ~1.5s | ✅ PASS |
+| **Acceptable** | 80% | 2 | ~2.5s | ✅ PASS |
+| **Marginal** | 70% | 3 | ~3.5s | ⚠️ WARN |
+| **Unacceptable** | 50% | 5 | ~6.0s | ❌ FAIL |
+
+**Performance Validation Method**:
+```bash
+# Test 1: Cache lookup speed (isolated)
+time python3 -c "from coderabbit_cache import CacheManager; cache = CacheManager(...); cache.get('key')"
+# Target: <10ms per lookup
+
+# Test 2: End-to-end with 90% cache hit
+# Pre-warm cache for 9/10 files
+./bin/roger --path <10 files> --enable-layer3
+# Target: <5s total
+```
 
 ### Approval Requirements:
 - [x] Julia Santos QA sign-off

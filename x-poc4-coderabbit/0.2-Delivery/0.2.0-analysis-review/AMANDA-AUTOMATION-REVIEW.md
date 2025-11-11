@@ -830,6 +830,98 @@ dependencies:
 
 ---
 
+#### 1b. Companion requirements.yml (Project Root)
+
+**REQUIRED**: Create `requirements.yml` at project root mirroring `meta/main.yml` dependencies.
+
+```yaml
+# requirements.yml (project root)
+# Install with: ansible-galaxy install -r requirements.yml
+---
+roles:
+  # External roles from Ansible Galaxy
+  - name: geerlingguy.git
+    version: "3.0.0"
+    src: https://github.com/geerlingguy/ansible-role-git
+  
+  - name: geerlingguy.pip
+    version: "2.2.0"
+    src: https://github.com/geerlingguy/ansible-role-pip
+  
+  # Internal Hana-X roles (use exact versions matching meta/main.yml)
+  - name: hana_x.base
+    version: "v1.2.3"              # Git tag
+    src: git+https://github.com/hana-x-ai/ansible-role-base.git
+    scm: git
+  
+  - name: hana_x.python
+    version: "a1b2c3d4e5f6"       # Commit hash (use full 40-char SHA in production)
+    src: git+https://github.com/hana-x-ai/ansible-role-python.git
+    scm: git
+
+# IMPORTANT: Keep this file synchronized with roles/coderabbit/meta/main.yml
+# Any version changes must be updated in BOTH files
+```
+
+**Installation Commands**:
+
+```bash
+# Developer/CI setup - install all role dependencies
+ansible-galaxy install -r requirements.yml
+
+# Force reinstall (when versions change)
+ansible-galaxy install -r requirements.yml --force
+
+# Verify installed versions
+ansible-galaxy list
+```
+
+**README.md Addition**:
+
+```markdown
+## Prerequisites
+
+### Ansible Role Dependencies
+
+Install required roles before running playbooks:
+
+\`\`\`bash
+ansible-galaxy install -r requirements.yml
+\`\`\`
+
+**CI/CD Integration**: CI pipelines should run this command before executing playbooks to ensure all dependencies are present.
+
+**Version Updates**: When updating role versions, modify BOTH:
+1. `requirements.yml` (project root)
+2. `roles/coderabbit/meta/main.yml`
+
+Keep versions synchronized to ensure reproducible deployments.
+\`\`\`
+```
+
+**CI/CD Integration Example** (Jenkins/GitHub Actions):
+
+```yaml
+# .github/workflows/deploy.yml
+steps:
+  - name: Install Ansible role dependencies
+    run: ansible-galaxy install -r requirements.yml
+    
+  - name: Run playbook
+    run: ansible-playbook -i inventory/production playbooks/deploy-coderabbit.yml
+```
+
+**Why This Matters**:
+- ✅ **Reproducibility**: Exact same role versions in dev, CI, and production
+- ✅ **CI-Friendly**: Single command to install all dependencies
+- ✅ **Version Control**: Track role versions alongside playbook code
+- ✅ **Faster Setup**: New team members/CI runners get correct versions immediately
+- ✅ **Dependency Documentation**: Clear list of external dependencies at project root
+
+**Critical Rule**: `requirements.yml` and `meta/main.yml` MUST stay synchronized. Consider adding a validation test to CI that compares both files.
+
+---
+
 #### 2. Secret Management (templates/coderabbit.sh.j2)
 
 **CRITICAL**: NO hardcoded secrets in templates. ALL secrets MUST come from Ansible Vault.

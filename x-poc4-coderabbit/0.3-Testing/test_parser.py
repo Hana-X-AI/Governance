@@ -15,6 +15,17 @@ import pytest
 import json
 from typing import Dict, List
 
+# ==============================================================================
+# Custom pytest markers for parser implementation status
+# ==============================================================================
+pytestmark = pytest.mark.parser_not_implemented
+
+# Skip reason for tests awaiting parser implementation
+PARSER_SKIP_REASON = (
+    "Parser not implemented yet (Eric Johnson - Phase 1A: Linter Aggregator). "
+    "Tests are placeholders awaiting real issue data from linter aggregation."
+)
+
 
 # ==============================================================================
 # TC-001: Security Pattern Matching
@@ -22,16 +33,9 @@ from typing import Dict, List
 
 @pytest.mark.security
 @pytest.mark.unit
+@pytest.mark.skip(reason=PARSER_SKIP_REASON)
 class TestSecurityPatternMatching:
-    """
-    TC-001: Verify parser correctly detects security vulnerabilities.
-
-    Tests detection of:
-    - Hardcoded secrets (API keys, passwords, tokens)
-    - SQL injection vulnerabilities
-    - XSS vulnerabilities
-    """
-
+    """TC-001: Verify parser detects security vulnerabilities (SKIPPED - awaiting parser)."""
     def test_detects_hardcoded_secret(self, sample_coderabbit_output: str):
         """
         Test parser detects hardcoded secrets.
@@ -40,9 +44,7 @@ class TestSecurityPatternMatching:
         When: Parser processes the output
         Then: Parser identifies it as security issue with P0 priority
         """
-        # This is a placeholder test - actual implementation will use the parser
-        # when Eric completes it. For now, we validate the test structure.
-
+        # Placeholder - awaiting parser implementation
         # Arrange
         assert "Hardcoded API key" in sample_coderabbit_output
 
@@ -129,9 +131,10 @@ class TestSecurityPatternMatching:
 
 @pytest.mark.solid
 @pytest.mark.unit
+@pytest.mark.skip(reason=PARSER_SKIP_REASON)
 class TestSOLIDPrincipleDetection:
     """
-    TC-002: Verify parser correctly detects SOLID principle violations.
+    TC-002: Verify parser correctly detects SOLID principle violations (SKIPPED - awaiting parser).
 
     Tests detection of:
     - SRP (Single Responsibility Principle) violations
@@ -244,9 +247,10 @@ class TestSOLIDPrincipleDetection:
 
 @pytest.mark.quality
 @pytest.mark.unit
+@pytest.mark.skip(reason=PARSER_SKIP_REASON)
 class TestCodeQualityDetection:
     """
-    TC-003: Verify parser correctly detects code quality issues.
+    TC-003: Verify parser correctly detects code quality issues (SKIPPED - awaiting parser).
 
     Tests detection of:
     - Missing type hints
@@ -336,16 +340,13 @@ class TestCodeQualityDetection:
 
 # ==============================================================================
 # Helper Functions for Tests
-# NOTE: Ready for use when parser implementation is complete (Eric Johnson)
 # ==============================================================================
 #
-# These helper functions are fully implemented and tested, awaiting:
-# - Parser implementation (Eric Johnson - Phase 1A: Linter Aggregator)
-# - Real issue data from linter aggregation
-# - Integration testing with actual CodeRabbit output
+# These helper functions are ready for integration when parser is implemented.
+# See module-level PARSER_SKIP_REASON for current status.
 #
-# Current Status: Placeholder tests exist (lines 44-335)
-# Next Step: Eric will integrate these helpers once parser generates real data
+# Usage: Tests will be automatically enabled when @pytest.mark.skip decorators
+# are removed after parser implementation is complete.
 # ==============================================================================
 
 def count_issues_by_type(issues: List[Dict], issue_type: str) -> int:

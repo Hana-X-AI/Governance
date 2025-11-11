@@ -52,7 +52,7 @@ $ psql -h hx-postgres-server.hx.dev.local -U n8n_user -d n8n_poc3 -c "SELECT cur
 
 ### Table Ownership Verification
 
-**Verified as of**: 2025-11-10 | **n8n version**: v1.118.2 | **Verifier**: Update these fields when re-verifying (run `n8n --version` or check deployment tag/release notes)
+**Verified as of**: 2025-11-10 | **n8n version**: v1.118.2 | **Verifier**: Agent Zero (Claude Code)
 
 All 50 tables are owned by **n8n_user**:
 ```
@@ -112,6 +112,50 @@ All 50 tables are owned by **n8n_user**:
 ```
 
 **Total Tables**: 50 (matches schema for n8n version listed above)
+
+### Metadata Maintenance
+
+**When to Re-Verify**: After n8n upgrades, major schema migrations, or database user changes
+
+**Re-Verification Steps**:
+1. **Check n8n Version**:
+   ```bash
+   # SSH to n8n server
+   ssh agent0@hx-n8n-server.hx.dev.local
+   
+   # Get n8n version
+   sudo -u n8n n8n --version
+   # OR check package version
+   npm list -g n8n
+   # OR check deployment tag
+   git -C /opt/n8n describe --tags
+   ```
+
+2. **Verify Table Ownership**:
+   ```bash
+   # Connect to database
+   sudo -u postgres psql -d n8n_poc3
+   
+   # List all tables with ownership
+   \dt
+   
+   # Count tables by owner
+   SELECT tableowner, COUNT(*) 
+   FROM pg_tables 
+   WHERE schemaname = 'public' 
+   GROUP BY tableowner;
+   ```
+
+3. **Update Metadata**:
+   - Update "Verified as of" date
+   - Update "n8n version" (from step 1)
+   - Update "Verifier" (your name or process identifier)
+   - Update "Total Tables" count if schema changed
+
+**Recording Changes**:
+- Update the metadata line in this document (line 55)
+- Document any schema changes in SPECIFICATION-CHANGES-LOG.md
+- If table ownership differs, investigate and document in DEFECT-LOG.md
 
 ---
 

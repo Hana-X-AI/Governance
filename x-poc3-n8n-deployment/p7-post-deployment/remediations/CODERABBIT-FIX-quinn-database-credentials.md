@@ -222,21 +222,30 @@ sudo nano /srv/cc/Governance/0.2-credentials/hx-credentials.md
 # Change: svc-n8n:OldPassword123
 # To:     svc-n8n:NewPassword456
 
-# 2. Generate secure password (if not already done)
+# 2. Generate secure password and persist to protected file
+# DO NOT echo or log the generated password
 NEW_PASSWORD=$(openssl rand -base64 24)
-echo "Generated password (store securely): $NEW_PASSWORD"
 
-# 3. Update PostgreSQL user password (single command, no export)
-# Read password securely, avoiding shell history
-read -sp "Enter new password for svc-n8n: " NEW_PASSWORD
-echo
-PGPASSWORD="$NEW_PASSWORD" sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
+# Store password securely (restrictive permissions, no stdout)
+sudo mkdir -p /root/.credentials
+echo "$NEW_PASSWORD" | sudo tee /root/.credentials/svc-n8n.password > /dev/null
+sudo chmod 600 /root/.credentials/svc-n8n.password
+echo "✅ Password generated and stored in /root/.credentials/svc-n8n.password"
 
-# 4. Create .pgpass for postgres user (for verification without exposing password)
-sudo -u postgres bash -c "cat > ~/.pgpass << 'EOF'
+# 3. Update PostgreSQL user password using peer authentication
+# Run as postgres user (peer auth, no PGPASSWORD needed)
+sudo -u postgres psql -c "ALTER USER \"svc-n8n\" WITH PASSWORD '$NEW_PASSWORD';"
+echo "✅ PostgreSQL user password updated"
+
+# 4. Create .pgpass for n8n service user (for application use)
+sudo -u n8n bash -c "cat > ~/.pgpass << 'EOF'
 hx-postgres-server.hx.dev.local:5432:n8n_poc3:svc-n8n:$NEW_PASSWORD
 EOF"
-sudo -u postgres chmod 0600 ~/.pgpass
+sudo -u n8n chmod 0600 ~/.pgpass
+echo "✅ .pgpass file created for n8n user"
+
+# Clear password from shell memory
+unset NEW_PASSWORD
 
 # 5. Update .env file on n8n server (secure method using temporary file)
 ssh hx-n8n-server.hx.dev.local << 'ENDSSH'
