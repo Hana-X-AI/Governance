@@ -1,0 +1,60 @@
+flowchart TD
+    %% Pre-Flight Phase
+    subgraph PreFlight["PRE-FLIGHT"]
+        T001["T001: Pre-flight task 1"] --> T002["T002: Pre-flight task 2"]
+    end
+    
+    %% Phase 1 - Parallel Preparation
+    subgraph Phase1["PHASE 1: Preparation (Parallel)"]
+        P001["P001: Prep task 1"]
+        P002["P002: Prep task 2"]
+        P003["P003: Prep task 3"]
+    end
+    
+    %% Phase 2 - Sequential Deployment
+    subgraph Phase2["PHASE 2: Deployment (Sequential)"]
+        S001["S001: Deploy step 1"] --> S002["S002: Deploy step 2"]
+        S002 --> S003["S003: Deploy step 3"]
+    end
+    
+    %% Phase 3 - Parallel Validation
+    subgraph Phase3["PHASE 3: Validation (Parallel)"]
+        V001["V001: Validate aspect 1"]
+        V002["V002: Validate aspect 2"]
+        V003["V003: Validate aspect 3"]
+    end
+    
+    %% Rollback Phase
+    subgraph Rollback["ROLLBACK (if needed)"]
+        R001["R001: Rollback step 1"] --> R002["R002: Rollback step 2"]
+        R002 --> R003["R003: Rollback step ..."]
+    end
+    
+    %% Success/Failure outcomes
+    Success{{"✅ SUCCESS<br/>Phase Complete"}}
+    Failure{{"❌ FAILURE<br/>Rollback Required"}}
+    
+    %% Inter-phase connections
+    T002 --> Phase1
+    P001 & P002 & P003 --> S001
+    S003 --> Phase3
+    V001 & V002 & V003 --> Success
+    V001 & V002 & V003 -.-> Failure
+    Failure --> Rollback
+    
+    %% Styling
+    classDef preflight fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef phase1 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef phase2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef phase3 fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef rollback fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    classDef success fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    classDef failure fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    
+    class T001,T002 preflight
+    class P001,P002,P003 phase1
+    class S001,S002,S003 phase2
+    class V001,V002,V003 phase3
+    class R001,R002,R003 rollback
+    class Success success
+    class Failure failure
